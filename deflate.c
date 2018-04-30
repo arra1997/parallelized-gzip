@@ -34,28 +34,18 @@ int deflate_file(int input_fd, int output_fd, long block_size, int level)
     {
       read_count = read(input_fd, in, buffer_size);
       assert(read_count != -1);
-      /*do
+
+      if (read_count>0)
 	{
+	  strm.avail_in = buffer_size;
+	  strm.next_in = in;
 	  strm.avail_out = buffer_size;
 	  strm.next_out = out;
-	  ret = inflate(&strm, Z_NO_FLUSH);
-	  assert(ret != Z_STREAM_ERROR);
-
-	  switch(ret)
-	    {
-	    case Z_NEED_DICT:
-	      ret = Z_DATA_ERROR;
-	    case Z_DATA_ERROR:
-	    case Z_MEM_ERROR:
-	      (void)inflateEnd(&strm);
-	      return ret;
-	    }
-	} while (strm.avail_out == 0);
-      */
-
-      write_count = write(output_fd, out, buffer_size);
-      assert(write_count != -1);
-      
+	  ret = deflate(&strm, Z_NO_FLUSH);
+	  assert(ret!=Z_STREAM_ERROR);
+	  write_count = write(output_fd, out, buffer_size - strm.avail_out);
+          assert(write_count != -1);
+	}
     }while (read_count != 0);
 
   free(in);

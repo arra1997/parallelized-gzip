@@ -54,7 +54,7 @@ int main(int argc, char **argv)
   for (index = optind; index < argc; index++)
     {
       int input_flag = O_RDONLY | (force?O_NOFOLLOW:0);
-      int output_flag = O_WRONLY;
+      int output_flag = O_WRONLY | O_CREAT;
       int i_fd = open(argv[index], input_flag);
       int o_fd = open(strcat(argv[index], ".gz"), output_flag);
       deflate_file(i_fd, o_fd, blocksize*128, level);
