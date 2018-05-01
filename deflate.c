@@ -6,6 +6,7 @@
 
 #define windowBits 15
 #define GZIP_ENCODING 16
+int buffer_size = 16384;
 
 void *safe_calloc(size_t nelem, size_t elsize)
 {
@@ -32,7 +33,6 @@ static void strm_init (z_stream * strm, int level)
 
 int deflate_file(int input_fd, int output_fd, long block_size, int level)
 {
-  long buffer_size = block_size; //for now
   int ret;
   int read_count;
   int write_count;
