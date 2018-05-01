@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #define windowBits 15
 #define GZIP_ENCODING 16
@@ -39,23 +40,31 @@ int deflate_file(int input_fd, int output_fd, long block_size, int level)
   strm_init (& strm, level);
   unsigned char *in = safe_calloc(buffer_size, sizeof(char));
   unsigned char *out = safe_calloc(buffer_size, sizeof(char));
-  do
-    {
-      read_count = read(input_fd, in, buffer_size);
-      assert(read_count != -1);
+    do {
+        read_count = read(input_fd, in, buffer_size);
+        assert(read_count != -1);
 
-      if (read_count>0)
-    	{
-    	  strm.avail_in = buffer_size;
-    	  strm.next_in = in;
-    	  strm.avail_out = buffer_size;
-    	  strm.next_out = out;
-    	  int ret = deflate(&strm, Z_FINISH);
-    	  assert(ret!=Z_STREAM_ERROR);
-    	  write_count = write(output_fd, out, buffer_size - strm.avail_out);
-              assert(write_count != -1);
-    	}
-    }while (read_count != 0);
+        if (read_count>0) {
+            strm.next_in = in;
+            strm.next_out = out;
+            strm.avail_in = read_count;
+            strm.avail_out = buffer_size;
+
+            if(read_count < buffer_size) {
+                int ret = deflate(&strm, Z_FINISH);
+                assert(ret!=Z_STREAM_ERROR);
+                write_count = write(output_fd, out, buffer_size - strm.avail_out);
+                assert(write_count != -1);
+                break;
+            }
+
+            int ret = deflate(&strm, Z_SYNC_FLUSH);
+            assert(ret!=Z_STREAM_ERROR);
+            write_count = write(output_fd, out, buffer_size - strm.avail_out);
+            assert(write_count != -1);
+        }
+    } while (read_count > 0);
+
   deflateEnd (& strm);
   free(in);
   free(out);
