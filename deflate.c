@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define windowBits 15
+#define GZIP_ENCODING 16
+
 void *safe_calloc(size_t nelem, size_t elsize)
 {
   void *addr = calloc(nelem, elsize);
@@ -14,6 +17,18 @@ void *safe_calloc(size_t nelem, size_t elsize)
   return addr;
 }
 
+static void strm_init (z_stream * strm, int level)
+{
+    strm->zalloc = Z_NULL;
+    strm->zfree  = Z_NULL;
+    strm->opaque = Z_NULL;
+    int ret = deflateInit2 (strm, level, Z_DEFLATED,
+                             windowBits | GZIP_ENCODING, 8,
+                             Z_DEFAULT_STRATEGY);
+    if (ret!=Z_OK)
+      exit (EXIT_FAILURE);
+}
+
 int deflate_file(int input_fd, int output_fd, long block_size, int level)
 {
   long buffer_size = block_size; //for now
@@ -21,36 +36,28 @@ int deflate_file(int input_fd, int output_fd, long block_size, int level)
   int read_count;
   int write_count;
   z_stream strm;
+  strm_init (& strm, level);
   unsigned char *in = safe_calloc(buffer_size, sizeof(char));
   unsigned char *out = safe_calloc(buffer_size, sizeof(char));
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  ret = deflateInit(&strm, level);
-  if (ret!=Z_OK)
-    return -1;
-
   do
     {
       read_count = read(input_fd, in, buffer_size);
       assert(read_count != -1);
 
       if (read_count>0)
-	{
-	  strm.avail_in = buffer_size;
-	  strm.next_in = in;
-	  strm.avail_out = buffer_size;
-	  strm.next_out = out;
-	  ret = deflate(&strm, Z_NO_FLUSH);
-	  assert(ret!=Z_STREAM_ERROR);
-	  write_count = write(output_fd, out, buffer_size - strm.avail_out);
-          assert(write_count != -1);
-	}
+    	{
+    	  strm.avail_in = buffer_size;
+    	  strm.next_in = in;
+    	  strm.avail_out = buffer_size;
+    	  strm.next_out = out;
+    	  int ret = deflate(&strm, Z_FINISH);
+    	  assert(ret!=Z_STREAM_ERROR);
+    	  write_count = write(output_fd, out, buffer_size - strm.avail_out);
+              assert(write_count != -1);
+    	}
     }while (read_count != 0);
-
+  deflateEnd (& strm);
   free(in);
   free(out);
   return 0;
 }
-
-
