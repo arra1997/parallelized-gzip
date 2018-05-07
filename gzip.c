@@ -28,6 +28,13 @@
 
 char const *Version = "1.9";
 char *program_name = "gzip";
+int to_stdout = 0;
+int keep = 0;
+int force = 0;
+long block_size = 128;
+int compression_level = 6;
+int quiet = 0;
+int verbose = 0;
 
 static char const *const license_msg[] = {
 "Copyright (C) 2018 Free Software Foundation, Inc.",
@@ -36,6 +43,7 @@ static char const *const license_msg[] = {
 "There is NO WARRANTY, to the extent permitted by law.",
 0};
 
+static char const short_options[] = "ckfLhHq123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
   {
@@ -46,6 +54,8 @@ static const struct option long_options[] =
     {"blocksize", required_argument, NULL, 'b'},
     {"license", no_argument, NULL, 'L'},
     {"version", no_argument, NULL, 'V'},
+    {"quiet", no_argument, NULL, 'q'},
+    {"silent", no_argument, NULL, 'q'},
     {0, 0, 0, 0} //last element has to be all 0s by convention
   };
 
@@ -61,6 +71,7 @@ void help ()
  "  -k, --keep        keep (don't delete) input files",
  "  -L, --license     display software license",
  "  -V, --version     display version number",
+ "  -q, --quiet       suppress all warnings",
     0};
   char const *const *p = help_msg;
   printf ("Usage: %s [OPTION]... [FILE]...\n", program_name);
@@ -89,13 +100,6 @@ static void finish_out ()
 {
   do_exit ();
 }
-
-static char const short_options[] = "ckfLhH123456789";
-int to_stdout = 0;
-int keep = 0;
-int force = 0;
-long block_size = 128;
-int compression_level = 6;
 
 int main (int argc, char **argv)
 {
@@ -131,6 +135,10 @@ int main (int argc, char **argv)
             version ();
             finish_out ();
             break;
+          case 'q':
+            quiet = 1;
+            verbose = 0;
+            break;
           case '1': case '2': case '3': case '4': case '5':
 	        case '6': case '7': case '8': case '9':
 	          compression_level = opt - '0';
@@ -142,8 +150,8 @@ int main (int argc, char **argv)
     {
       int input_flag = O_RDONLY | (force ? O_NOFOLLOW : 0);
       int output_flag = O_WRONLY | O_CREAT;
-      char* input_file = Calloc (strlen (argv[index]), sizeof (char));
-      char* output_file = Calloc (strlen (argv[index]+2), sizeof (char));
+      char *input_file = Calloc (strlen (argv[index]), sizeof (char));
+      char *output_file = Calloc (strlen (argv[index]+2), sizeof (char));
       strcpy (input_file, argv[index]);
       strcpy (output_file, argv[index]);
       strcat (output_file, ".gz");
