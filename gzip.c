@@ -25,7 +25,7 @@
 #include "string.h"
 #include "getopt.h"
 #include "stdlib.h"
-#include "gzip.h"
+#include "deflate.h"
 #include "utils.h"
 
 #ifndef Z_SUFFIX
