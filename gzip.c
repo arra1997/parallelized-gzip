@@ -132,10 +132,10 @@ int main (int argc, char **argv)
             finish_out ();
             break;
           case '1': case '2': case '3': case '4': case '5':
-	        case '6': case '7': case '8': case '9':
-	          compression_level = opt - '0';
-        	case -1:
-        	  parse_options = 0;
+          case '6': case '7': case '8': case '9':
+            compression_level = opt - '0';
+          case -1:
+            parse_options = 0;
       	}
     }
   for (index = optind; index < argc; index++)
