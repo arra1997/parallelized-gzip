@@ -23,7 +23,7 @@
 #include "string.h"
 #include "getopt.h"
 #include "stdlib.h"
-#include "deflate.h"
+#include "gzip.h"
 #include "utils.h"
 
 #ifndef Z_SUFFIX
@@ -68,6 +68,8 @@ static const struct option long_options[] =
     {"quiet", no_argument, NULL, 'q'},
     {"silent", no_argument, NULL, 'q'},
     {"suffix", required_argument, NULL, 'S'},
+    {"decompress", no_argument, NULL, 'd'}, 
+    {"uncompress", no_argument, NULL, 'd'}, 
     {0, 0, 0, 0} //last element has to be all 0s by convention
   };
 
@@ -79,6 +81,9 @@ void help ()
  "",
  "Mandatory arguments to long options are mandatory for short options too.",
  "",
+ "  -c, --stdout      write on standard output, keep original files unchanged",
+ "  -d, --decompress  decompress",
+ "  -f, --force       force overwrite of output file and compress links",
  "  -h, --help        give this help",
  "  -k, --keep        keep (don't delete) input files",
  "  -L, --license     display software license",
@@ -131,6 +136,8 @@ int main (int argc, char **argv)
         {
           case 'c':
             to_stdout = 1;
+            break;
+          case 'd':
             break;
           case 'h': case 'H':
             help ();
