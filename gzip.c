@@ -201,10 +201,7 @@ int main (int argc, char **argv)
       int i_fd = open (input_file, input_flag);
       int o_fd = open (output_file, output_flag);
       deflate_file (i_fd, o_fd, block_size * 128, compression_level);
-      if (!keep)
-      {
-          Unlink (input_file);
-      }
+      
 
       if (to_stdout)
       {
@@ -218,7 +215,10 @@ int main (int argc, char **argv)
         }
         close (fd);
       }
- 
+     if (!keep)
+      {
+          Unlink (input_file);
+      }
     free (input_file);
     free (output_file);
     }
