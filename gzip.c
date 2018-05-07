@@ -27,6 +27,7 @@
 #include "utils.h"
 
 char const *Version = "1.9";
+char *program_name = "gzip";
 
 static char const *const license_msg[] = {
 "Copyright (C) 2018 Free Software Foundation, Inc.",
@@ -39,18 +40,44 @@ static char const *const license_msg[] = {
 static const struct option long_options[] =
   {
     {"stdout", no_argument, NULL, 'c'},
+    {"help", no_argument, NULL, 'h'},
     {"keep", no_argument, NULL, 'k'},
     {"force", no_argument, NULL, 'f'},
     {"blocksize", required_argument, NULL, 'b'},
     {"license", no_argument, NULL, 'L'},
+    {"version", no_argument, NULL, 'V'},
     {0, 0, 0, 0} //last element has to be all 0s by convention
   };
+
+void help ()
+{
+  static char const *const help_msg[] =
+    {
+       "Compress or uncompress FILEs (by default, compress FILES in-place).",
+ "",
+ "Mandatory arguments to long options are mandatory for short options too.",
+ "",
+ "  -h, --help        give this help",
+ "  -k, --keep        keep (don't delete) input files",
+ "  -L, --license     display software license",
+ "  -V, --version     display version number",
+    0};
+  char const *const *p = help_msg;
+  printf ("Usage: %s [OPTION]... [FILE]...\n", program_name);
+  while (*p) 
+    printf ("%s\n", *p++);
+}
 
 void license ()
 {
   char const *const *p = license_msg;
-  printf ("%s %s\n", "gzip", Version);
+  printf ("%s %s\n", program_name, Version);
   while (*p) printf ("%s\n", *p++);
+}
+
+void version ()
+{
+  license ();
 }
 
 void do_exit ()
@@ -63,7 +90,7 @@ static void finish_out ()
   do_exit ();
 }
 
-static char const short_options[] = "ckfL";
+static char const short_options[] = "ckfLhH";
 int to_stdout = 0;
 int keep = 0;
 int force = 0;
@@ -83,6 +110,11 @@ int main (int argc, char **argv)
         	case 'c':
         	  to_stdout = 1;
         	  break;
+          case 'h':
+          case 'H':
+            help ();
+            finish_out ();
+            break;
         	case 'k':
         	  keep = 1;
         	  break;
@@ -94,6 +126,11 @@ int main (int argc, char **argv)
         	  break;
           case 'L':
             license ();
+            finish_out ();
+            break;
+          case 'V':
+            version ();
+            finish_out ();
             break;
         	case -1:
         	  parse_options = 0;
