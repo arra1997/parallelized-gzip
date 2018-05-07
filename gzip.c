@@ -139,6 +139,7 @@ int main (int argc, char **argv)
         {
           case 'c':
             to_stdout = 1;
+            keep = 1;
             break;
           case 'd':
             decompress = 1;
@@ -201,6 +202,9 @@ int main (int argc, char **argv)
       int o_fd = open (output_file, output_flag);
       deflate_file (i_fd, o_fd, block_size * 128, compression_level);
       if (!keep)
+      {
+          Unlink (input_file);
+      }
 
       if (to_stdout)
       {
@@ -214,9 +218,7 @@ int main (int argc, char **argv)
         }
         close (fd);
       }
-  {
-    Unlink (input_file);
-  }
+ 
     free (input_file);
     free (output_file);
     }
