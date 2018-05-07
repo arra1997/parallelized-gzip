@@ -45,6 +45,7 @@ long block_size = 128;
 int compression_level = 6;
 int quiet = 0;
 int verbose = 0;
+static int decompress = 0;
 static char const *z_suffix;
 static size_t z_len; /* strlen(z_suffix) */
 
@@ -140,6 +141,7 @@ int main (int argc, char **argv)
             to_stdout = 1;
             break;
           case 'd':
+            decompress = 1;
             break;
           case 'h': case 'H':
             help ();
