@@ -56,6 +56,8 @@ static char const *const license_msg[] = {
 "There is NO WARRANTY, to the extent permitted by law.",
 0};
 
+void treat_file(const char *input_file);
+
 static char const short_options[] = "ckfLhHqvVS123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
@@ -191,36 +193,43 @@ int main (int argc, char **argv)
     }
   for (index = optind; index < argc; index++)
     {
-      int input_flag = O_RDONLY | (force ? O_NOFOLLOW : 0);
-      int output_flag = O_WRONLY | O_CREAT;
-      char *input_file = Calloc (strlen (argv[index]), sizeof (char));
-      char *output_file = Calloc (strlen (argv[index]+2), sizeof (char));
-      strcpy (input_file, argv[index]);
-      strcpy (output_file, argv[index]);
-      strcat (output_file, z_suffix);
-      int i_fd = open (input_file, input_flag);
-      int o_fd = open (output_file, output_flag);
-      deflate_file (i_fd, o_fd, block_size * 128, compression_level);
-      
+      char *input_file = argv[index];
+	  treat_file(input_file);     
+    }
+}
 
-      if (to_stdout)
-      {
-        chmod (output_file, S_IRUSR|S_IRGRP|S_IROTH);
-        int fd = open (output_file, O_RDONLY);
-        char buf[1024];
-        int buflen;
-        while ((buflen = read (fd, buf, 1024)) > 0)
-        {
+void treat_file(const char *input_file)
+{
+  int input_flag = O_RDONLY | (force ? O_NOFOLLOW : 0);
+  int output_flag = O_WRONLY | O_CREAT;
+
+  char* output_file = Calloc (strlen (input_file)+2, sizeof (char));
+  strcpy (output_file, input_file);
+  strcat (output_file, z_suffix);
+
+  int i_fd = open (input_file, input_flag);
+  int o_fd = open (output_file, output_flag);
+
+  deflate_file (i_fd, o_fd, block_size*128, compression_level);
+
+  if (!keep)
+    {
+      Unlink (input_file);
+    }
+
+  if (to_stdout)
+    {
+      chmod (output_file, S_IRUSR|S_IRGRP|S_IROTH);
+      int fd = open (output_file, O_RDONLY);
+      char buf[1024];
+      int buflen;
+      while ((buflen = read (fd, buf, 1024)) > 0)
+	{
           write (1, buf, buflen);
         }
-        close (fd);
-      }
-     if (!keep)
-      {
-          Unlink (input_file);
-      }
-    free (input_file);
-    free (output_file);
+      close (fd);
     }
+
+  free (output_file);
 }
 
