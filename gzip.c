@@ -26,6 +26,14 @@
 #include "deflate.h"
 #include "utils.h"
 
+#ifndef Z_SUFFIX
+#  define Z_SUFFIX ".gz"
+#endif
+
+#ifndef MAX_SUFFIX
+#  define MAX_SUFFIX 10
+#endif
+
 char const *Version = "1.9";
 char *program_name = "gzip";
 int to_stdout = 0;
@@ -35,6 +43,8 @@ long block_size = 128;
 int compression_level = 6;
 int quiet = 0;
 int verbose = 0;
+static char const *z_suffix;
+static size_t z_len; /* strlen(z_suffix) */
 
 static char const *const license_msg[] = {
 "Copyright (C) 2018 Free Software Foundation, Inc.",
@@ -43,7 +53,7 @@ static char const *const license_msg[] = {
 "There is NO WARRANTY, to the extent permitted by law.",
 0};
 
-static char const short_options[] = "ckfLhHqvV123456789";
+static char const short_options[] = "ckfLhHqvVS123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
   {
@@ -57,6 +67,7 @@ static const struct option long_options[] =
     {"version", no_argument, NULL, 'V'},
     {"quiet", no_argument, NULL, 'q'},
     {"silent", no_argument, NULL, 'q'},
+    {"suffix", required_argument, NULL, 'S'},
     {0, 0, 0, 0} //last element has to be all 0s by convention
   };
 
@@ -71,6 +82,7 @@ void help ()
  "  -h, --help        give this help",
  "  -k, --keep        keep (don't delete) input files",
  "  -L, --license     display software license",
+ "  -S, --suffix=SUF  use suffix SUF on compressed files",
  "  -v, --verbose     verbose mode",
  "  -V, --version     display version number",
  "  -q, --quiet       suppress all warnings",
@@ -109,12 +121,14 @@ int main (int argc, char **argv)
 {
   int index = 0;
   int parse_options = 1;
+  z_suffix = Z_SUFFIX;
+  z_len = strlen(z_suffix);
   
   while (parse_options)
     {
       int opt = getopt_long (argc, argv, short_options, long_options, NULL);
       switch (opt)
-      	{
+        {
           case 'c':
             to_stdout = 1;
             break;
@@ -135,6 +149,10 @@ int main (int argc, char **argv)
             license ();
             finish_out ();
             break;
+          case 'S':
+            z_len = strlen(optarg);
+            z_suffix = optarg;
+            break;
           case 'v':
             verbose++;
             quiet = 0;
@@ -152,7 +170,12 @@ int main (int argc, char **argv)
             compression_level = opt - '0';
           case -1:
             parse_options = 0;
-      	}
+        }
+    }
+  if (z_len == 0 || z_len > MAX_SUFFIX) 
+    {
+      fprintf(stderr, "%s: invalid suffix '%s'\n", program_name, z_suffix);
+      do_exit();
     }
   for (index = optind; index < argc; index++)
     {
@@ -162,14 +185,14 @@ int main (int argc, char **argv)
       char *output_file = Calloc (strlen (argv[index]+2), sizeof (char));
       strcpy (input_file, argv[index]);
       strcpy (output_file, argv[index]);
-      strcat (output_file, ".gz");
+      strcat (output_file, z_suffix);
       int i_fd = open (input_file, input_flag);
       int o_fd = open (output_file, output_flag);
       deflate_file (i_fd, o_fd, block_size * 128, compression_level);
       if (!keep)
-	{
-	  Unlink (input_file);
-	}
+  {
+    Unlink (input_file);
+  }
     free (input_file);
     free (output_file);
     }
