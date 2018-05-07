@@ -63,12 +63,12 @@ static void finish_out ()
   do_exit ();
 }
 
-static char const short_options[] = "ckfL";
+static char const short_options[] = "ckfL123456789";
 int to_stdout = 0;
 int keep = 0;
 int force = 0;
-int level = 6;
 long block_size = 128;
+int compression_level = 6;
 
 int main (int argc, char **argv)
 {
@@ -80,23 +80,26 @@ int main (int argc, char **argv)
       int opt = getopt_long (argc, argv, short_options, long_options, NULL);
       switch (opt)
       	{
-        	case 'c':
-        	  to_stdout = 1;
-        	  break;
-        	case 'k':
-        	  keep = 1;
-        	  break;
-        	case 'f':
-        	  force = 1;
-        	  break;
-        	case 'b':
-        	  block_size = *optarg;
-        	  break;
-          case 'L':
+	case 'c':
+	  to_stdout = 1;
+	  break;
+	case 'k':
+	  keep = 1;
+	  break;
+	case 'f':
+	  force = 1;
+	  break;
+	case 'b':
+      	  block_size = *optarg;
+	  break;
+	case 'L':
             license ();
             break;
-        	case -1:
-        	  parse_options = 0;
+	case '1': case '2': case '3': case '4': case '5':
+	case '6': case '7': case '8': case '9':
+	    compression_level = opt - '0';
+	case -1:
+	  parse_options = 0;
       	}
     }
   for (index = optind; index < argc; index++)
@@ -110,7 +113,7 @@ int main (int argc, char **argv)
       strcat (output_file, ".gz");
       int i_fd = open (input_file, input_flag);
       int o_fd = open (output_file, output_flag);
-      deflate_file (i_fd, o_fd, block_size * 128, level);
+      deflate_file (i_fd, o_fd, block_size * 128, compression_level);
       if (!keep)
 	{
 	  Unlink (input_file);
