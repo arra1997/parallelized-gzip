@@ -43,7 +43,7 @@ static char const *const license_msg[] = {
 "There is NO WARRANTY, to the extent permitted by law.",
 0};
 
-static char const short_options[] = "ckfLhHq123456789";
+static char const short_options[] = "ckfLhHqvV123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
   {
@@ -53,6 +53,7 @@ static const struct option long_options[] =
     {"force", no_argument, NULL, 'f'},
     {"blocksize", required_argument, NULL, 'b'},
     {"license", no_argument, NULL, 'L'},
+    {"verbose", no_argument, NULL, 'v'},
     {"version", no_argument, NULL, 'V'},
     {"quiet", no_argument, NULL, 'q'},
     {"silent", no_argument, NULL, 'q'},
@@ -70,8 +71,11 @@ void help ()
  "  -h, --help        give this help",
  "  -k, --keep        keep (don't delete) input files",
  "  -L, --license     display software license",
+ "  -v, --verbose     verbose mode",
  "  -V, --version     display version number",
  "  -q, --quiet       suppress all warnings",
+ "  -1, --fast        compress faster",
+ "  -9, --best        compress better",
     0};
   char const *const *p = help_msg;
   printf ("Usage: %s [OPTION]... [FILE]...\n", program_name);
@@ -130,6 +134,10 @@ int main (int argc, char **argv)
           case 'L':
             license ();
             finish_out ();
+            break;
+          case 'v':
+            verbose++;
+            quiet = 0;
             break;
           case 'V':
             version ();
