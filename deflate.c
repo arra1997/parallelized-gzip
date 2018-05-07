@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-
+#include "utils.h"
 #include "stdlib.h"
 
 #ifndef WINDOW_BITS
@@ -34,17 +34,6 @@
 #ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 16384
 #endif
-
-void *safe_calloc (size_t nelem, size_t elsize)
-{
-  void *addr = calloc (nelem, elsize);
-  if (addr == NULL)
-    {
-      printf ("Insufficient memory");
-      assert (addr != NULL);
-    }
-  return addr;
-}
 
 static void strm_init (z_stream *strm, int level)
 {
@@ -65,8 +54,8 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level)
   int write_count;
   z_stream strm;
   strm_init (&strm, level);
-  unsigned char *in = safe_calloc (BUFFER_SIZE, sizeof (char));
-  unsigned char *out = safe_calloc (BUFFER_SIZE, sizeof (char));
+  unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
+  unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
   do 
     {
       read_count = read (input_fd, in, BUFFER_SIZE);

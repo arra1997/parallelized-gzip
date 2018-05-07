@@ -20,11 +20,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include "string.h"
 #include "getopt.h"
 #include "stdlib.h"
 #include "deflate.h"
+#include "utils.h"
 
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
@@ -73,9 +73,18 @@ int main (int argc, char **argv)
     {
       int input_flag = O_RDONLY | (force ? O_NOFOLLOW : 0);
       int output_flag = O_WRONLY | O_CREAT;
-      int i_fd = open (argv[index], input_flag);
-      int o_fd = open (strcat (argv[index], ".gz"), output_flag);
+      char* input_file = Calloc (strlen(argv[index]), sizeof(char));
+      char* output_file = Calloc (strlen(argv[index]+2), sizeof(char));
+      strcpy (input_file, argv[index]);
+      strcpy (output_file, argv[index]);
+      strcat (output_file, ".gz");
+      int i_fd = open (input_file, input_flag);
+      int o_fd = open (output_file, output_flag);
       deflate_file (i_fd, o_fd, block_size * 128, level);
+      if (!keep)
+	{
+	  Unlink (input_file);
+	}
     }
 }
 
