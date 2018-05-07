@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
+
 #include "string.h"
 #include "getopt.h"
 #include "stdlib.h"
@@ -190,6 +192,19 @@ int main (int argc, char **argv)
       int o_fd = open (output_file, output_flag);
       deflate_file (i_fd, o_fd, block_size * 128, compression_level);
       if (!keep)
+
+      if (to_stdout)
+      {
+        chmod (output_file, S_IRUSR|S_IRGRP|S_IROTH);
+        int fd = open (output_file, O_RDONLY);
+        char buf[1024];
+        int buflen;
+        while ((buflen = read (fd, buf, 1024)) > 0)
+        {
+          write (1, buf, buflen);
+        }
+        close (fd);
+      }
   {
     Unlink (input_file);
   }
