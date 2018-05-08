@@ -41,7 +41,7 @@ static void strm_init (z_stream *strm, int level)
     strm->zalloc = Z_NULL;
     strm->zfree  = Z_NULL;
     strm->opaque = Z_NULL;
-    int ret = deflateInit2 (strm, level, Z_DEFLATED, 
+    int ret = deflateInit2 (strm, level, Z_DEFLATED,
                             WINDOW_BITS | GZIP_ENCODING, 8,
                             Z_DEFAULT_STRATEGY);
     if (ret != Z_OK)
@@ -50,26 +50,26 @@ static void strm_init (z_stream *strm, int level)
 
 int deflate_file (int input_fd, int output_fd, long block_size, int level)
 {
-  int ret;
+  //int ret;
   int read_count;
   int write_count;
   z_stream strm;
   strm_init (&strm, level);
   unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
   unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
-  do 
+  do
     {
       read_count = read (input_fd, in, BUFFER_SIZE);
       assert (read_count != -1);
 
-      if (read_count > 0) 
+      if (read_count > 0)
         {
           strm.next_in = in;
           strm.next_out = out;
           strm.avail_in = read_count;
           strm.avail_out = BUFFER_SIZE;
 
-          if (read_count < BUFFER_SIZE) 
+          if (read_count < BUFFER_SIZE)
             {
               int ret = deflate (&strm, Z_FINISH);
               assert (ret != Z_STREAM_ERROR);

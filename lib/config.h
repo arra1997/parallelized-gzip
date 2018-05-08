@@ -136,7 +136,7 @@
 /* #undef DOUBLE_SLASH_IS_DISTINCT_ROOT */
 
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
-/* #undef FCNTL_DUPFD_BUGGY */
+#define FCNTL_DUPFD_BUGGY 1
 
 /* Define as the bit index in the word where to find bit 0 of the exponent of
    'float'. */
@@ -224,7 +224,7 @@
 #define GNULIB_OPENAT_SAFER 1
 
 /* enable some gnulib portability checks */
-/* #undef GNULIB_PORTCHECK */
+#define GNULIB_PORTCHECK 1
 
 /* Define to 1 if printf and friends should be labeled with attribute
    "__gnu_printf__" instead of "__printf__" */
@@ -410,7 +410,8 @@
    may be supplied by this distribution. */
 #define HAVE_ALLOCA 1
 
-/* Define to 1 if <alloca.h> works. */
+/* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
+   */
 #define HAVE_ALLOCA_H 1
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
@@ -764,8 +765,7 @@
 /* Define to 1 if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H 1
 
-/* Always define to 1, for backward compatibility. You can assume <string.h>
-   exists. */
+/* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strnlen' function. */
@@ -889,7 +889,7 @@
 #define HAVE_WORKING_O_NOFOLLOW 0
 
 /* Define if utimes works properly. */
-/* #undef HAVE_WORKING_UTIMES */
+#define HAVE_WORKING_UTIMES 1
 
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
@@ -1009,7 +1009,7 @@
 #define PACKAGE_NAME "gzip"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "gzip 1.9"
+#define PACKAGE_STRING "gzip UNKNOWN"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gzip"
@@ -1018,7 +1018,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.9"
+#define PACKAGE_VERSION "UNKNOWN"
 
 /* Define to the type that is the result of default argument promotions of
    type mode_t. */
@@ -1091,8 +1091,7 @@
 /* Define to 1 if the `S_IS*' macros in <sys/stat.h> do not work properly. */
 /* #undef STAT_MACROS_BROKEN */
 
-/* Always define to 1, for backward compatibility. You can assume the C90
-   standard headers exist. */
+/* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Define to 1 if strerror_r returns char *. */
@@ -1202,7 +1201,7 @@
 /* #undef USE_WINDOWS_THREADS */
 
 /* Version number of package */
-#define VERSION "1.9"
+#define VERSION "UNKNOWN"
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
@@ -1388,7 +1387,7 @@
 #endif
 
 /* Define to 1 if the compiler is checking for lint. */
-/* #undef lint */
+#define lint 1
 
 /* Define to `int' if <sys/types.h> does not define. */
 /* #undef mode_t */

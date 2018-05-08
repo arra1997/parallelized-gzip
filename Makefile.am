@@ -22,7 +22,7 @@ BUILT_SOURCES =
 
 SUBDIRS = lib doc . tests
 AM_CPPFLAGS = -I$(top_srcdir)/lib
-AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
+AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS) -lz
 
 # Tell the linker to omit references to unused shared libraries.
 AM_LDFLAGS = $(IGNORE_UNUSED_LIBRARIES_CFLAGS)
@@ -45,14 +45,14 @@ EXTRA_DIST = $(ACINCLUDE_INPUTS) $(man_MANS) \
   tailor.h \
   zcat.in zcmp.in zdiff.in \
   zegrep.in zfgrep.in zforce.in zgrep.in zless.in zmore.in znew.in
-noinst_HEADERS = gzip.h lzw.h
+noinst_HEADERS = deflate.h gzip.h lzw.h
 
 bin_PROGRAMS = gzip
 bin_SCRIPTS = gunzip gzexe zcat zcmp zdiff \
   zegrep zfgrep zforce zgrep zless zmore znew
 gzip_SOURCES = \
-  bits.c deflate.c gzip.c inflate.c lzw.c \
-  trees.c unlzh.c unlzw.c unpack.c unzip.c util.c zip.c
+  bits.c deflate.h deflate.c gzip.c inflate.c lzw.c \
+  trees.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 gzip_LDADD = libver.a lib/libgzip.a
 gzip_LDADD += $(LIB_CLOCK_GETTIME)
 

@@ -1,6 +1,6 @@
-This is gzip.info, produced by makeinfo version 6.3 from gzip.texi.
+This is gzip.info, produced by makeinfo version 6.1 from gzip.texi.
 
-This manual is for GNU Gzip (version 1.9, 7 January 2018), and documents
+This manual is for GNU Gzip (version UNKNOWN, 8 May 2018), and documents
 commands for compressing and decompressing data.
 
    Copyright © 1998-1999, 2001-2002, 2006-2007, 2009-2018 Free Software
@@ -36,7 +36,7 @@ File: gzip.info,  Node: Top,  Next: Overview,  Up: (dir)
 GNU Gzip: General file (de)compression
 **************************************
 
-This manual is for GNU Gzip (version 1.9, 7 January 2018), and documents
+This manual is for GNU Gzip (version UNKNOWN, 8 May 2018), and documents
 commands for compressing and decompressing data.
 
    Copyright © 1998-1999, 2001-2002, 2006-2007, 2009-2018 Free Software
