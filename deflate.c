@@ -48,16 +48,13 @@ static void strm_init (z_stream *strm, int level)
       exit (EXIT_FAILURE);
 }
 
-int deflate_file (int input_fd, int output_fd, long block_size, int level, gz_header *header)
+int deflate_file (int input_fd, int output_fd, long block_size, int level)
 {
+  int ret;
   int read_count;
   int write_count;
   z_stream strm;
   strm_init (&strm, level);
-
-  int ret = deflateSetHeader (&strm, header);
-  if (ret != Z_OK)
-    exit (EXIT_FAILURE);
   unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
   unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
   do 
