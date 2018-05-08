@@ -39,7 +39,7 @@ static void strm_init (z_stream *strm)
 {
   int ret;
   strm->zalloc = Z_NULL;
-  strm->zfree == Z_NULL;
+  strm->zfree = Z_NULL;
   strm->opaque = Z_NULL;
   ret = inflateInit2(strm, WINDOW_BITS | GZIP_ENCODING);
   if (ret != Z_OK)
