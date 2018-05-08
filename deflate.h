@@ -16,4 +16,4 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-int deflate_file (int input_fd, int output_fd, long block_size, int level);
+int deflate_file (int input_fd, int output_fd, long block_size, int level, gz_header *head);

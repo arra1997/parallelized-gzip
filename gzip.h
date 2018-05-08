@@ -280,7 +280,7 @@ extern noreturn void abort_gzip (void);
 
         /* in deflate.c */
 extern void lm_init (int pack_level, ush *flags);
-extern off_t deflate (void);
+//extern off_t deflate (void);
 
         /* in trees.c */
 extern void ct_init     (ush *attr, int *method);
@@ -318,4 +318,4 @@ extern void display_ratio (off_t num, off_t den, FILE *file);
 extern void fprint_off    (FILE *, off_t, int);
 
         /* in inflate.c */
-extern int inflate (void);
+//extern int inflate (void);
