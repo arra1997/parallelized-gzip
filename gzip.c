@@ -59,7 +59,7 @@ static char const *const license_msg[] = {
 
 void treat_file(const char *input_file);
 
-static char const short_options[] = "ckfLhHqvVS123456789";
+static char const short_options[] = "cdkfLhHqvVS123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
   {
