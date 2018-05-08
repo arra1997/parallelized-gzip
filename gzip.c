@@ -26,6 +26,7 @@
 #include "getopt.h"
 #include "stdlib.h"
 #include "deflate.h"
+#include "inflate.h"
 #include "utils.h"
 
 #ifndef Z_SUFFIX
@@ -202,16 +203,39 @@ void treat_file(const char *input_file)
 {
   int input_flag = O_RDONLY | (force ? O_NOFOLLOW : 0);
   int output_flag = O_WRONLY | O_CREAT;
+  char* output_file = Calloc (strlen (input_file)+sizeof(z_suffix), sizeof (char));
 
-  char* output_file = Calloc (strlen (input_file)+2, sizeof (char));
-  strcpy (output_file, input_file);
-  strcat (output_file, z_suffix);
-
+  if (!decompress)
+    {
+      strcpy (output_file, input_file);
+      strcat (output_file, z_suffix);
+    }
+  else
+    {
+      int count;
+      int i;
+      for (count = strlen(input_file)-1; count>0; --count)
+	{
+	  if (input_file[count]=='.') break;
+	}
+      for (i = 0; i < count; ++i)
+	{
+	  output_file[i] = input_file[i];
+	}
+      output_file[i] = '\0';
+    }
+  
   int i_fd = open (input_file, input_flag);
   int o_fd = open (output_file, output_flag);
 
-  deflate_file (i_fd, o_fd, block_size*128, compression_level);
-
+  if (!decompress)
+    {
+      deflate_file (i_fd, o_fd, block_size*128, compression_level);
+    }
+  else
+    {
+      inflate_file (i_fd, o_fd);
+    }
   if (!keep)
     {
       Unlink (input_file);

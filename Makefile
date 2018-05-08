@@ -1,10 +1,10 @@
 gzip: deflate.c deflate.h gzip.c
-	gcc -o gzip deflate.c deflate.h gzip.c utils.c utils.h -lz
+	gcc -o gzip deflate.c deflate.h gzip.c utils.c utils.h inflate.c inflate.h -lz
 
 clean:
 	rm -f gzip gzip.tar.gz
 
 dist:
-	tar -cvf gzip.tar deflate.c deflate.h gzip.c utils.c utils.h
+	tar -cvf gzip.tar deflate.c deflate.h gzip.c utils.c utils.h inflate.c inflate.h
 	./gzip gzip.tar
 	rm -f gzip.tar
