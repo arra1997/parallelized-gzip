@@ -23,6 +23,13 @@
 #include <assert.h>
 #include "utils.h"
 
+#ifndef WINDOW_BITS
+#  define WINDOW_BITS 15
+#endif
+
+#ifndef GZIP_ENCODING
+#  define GZIP_ENCODING 16
+#endif
 
 #ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 16384
@@ -34,9 +41,7 @@ static void strm_init (z_stream *strm)
   strm->zalloc = Z_NULL;
   strm->zfree == Z_NULL;
   strm->opaque = Z_NULL;
-  strm->avail_in = 0;
-  strm->next_in = Z_NULL;
-  ret = inflateInit(strm);
+  ret = inflateInit2(strm, WINDOW_BITS | GZIP_ENCODING);
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
 }
