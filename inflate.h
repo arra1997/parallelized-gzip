@@ -1,4 +1,4 @@
-/* deflate.h
+/* inflate.h
 
    Copyright (C) 2018 Free Software Foundation, Inc.
 
@@ -16,4 +16,4 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-int deflate_file (int input_fd, int output_fd, long block_size, int level);
+int inflate_file (int input_fd, int output_fd);
