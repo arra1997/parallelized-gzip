@@ -41,7 +41,7 @@ static void strm_init (z_stream *strm)
   strm->zalloc = Z_NULL;
   strm->zfree = Z_NULL;
   strm->opaque = Z_NULL;
-  ret = inflateInit2(strm, WINDOW_BITS | GZIP_ENCODING);
+  ret = inflateInit2(strm, WINDOW_BITS | 16);
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
 }
@@ -49,6 +49,7 @@ static void strm_init (z_stream *strm)
 int inflate_file (int input_fd, int output_fd)
 {
   int ret;
+  int flush;
   int read_count;
   int write_count;
   z_stream strm;
@@ -63,23 +64,19 @@ int inflate_file (int input_fd, int output_fd)
       break;
     strm.next_in = in;
     strm.avail_in = read_count;
-    strm.next_out = out;
-    strm.avail_out = BUFFER_SIZE;
-    if (read_count < BUFFER_SIZE)
+    //fprintf(stderr, "Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
+    flush = (read_count < BUFFER_SIZE) ? Z_FINISH : Z_NO_FLUSH;
+    do
     {
-      ret = inflate (&strm, Z_FINISH);
+      strm.next_out = out;
+      strm.avail_out = BUFFER_SIZE;
+      ret = inflate (&strm, flush);
       assert (ret != Z_STREAM_ERROR);
       write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
-      assert (write_count != -1);
-      break;
-    }
-    else
-    {
-      ret = inflate (&strm, Z_NO_FLUSH);
-      assert (ret != Z_STREAM_ERROR);
-      write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
+      //fprintf(stderr, "After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
       assert (write_count != -1);
     }
+    while (strm.avail_out == 0);
   }
   while (read_count > 0);
 
