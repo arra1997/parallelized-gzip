@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+
+#include "deflate.h"
 #include "utils.h"
 #include "stdlib.h"
 #include "deflate.h"
@@ -33,8 +35,8 @@
 #  define GZIP_ENCODING 16
 #endif
 
-#ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 16384
+#ifndef BUF_SIZE
+#  define BUF_SIZE 16384
 #endif
 
 
@@ -51,40 +53,45 @@ static void strm_init (z_stream *strm, int level)
       exit (EXIT_FAILURE);
 }
 
-int deflate_file (int input_fd, int output_fd, long block_size, int level)
+int deflate_file (int input_fd, int output_fd, long block_size, int level,
+  gz_header *header, off_t *read_bytes, off_t *write_bytes)
 {
-  //int ret;
   int read_count;
   int write_count;
   z_stream strm;
   strm_init (&strm, level);
-  unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
-  unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
+  int ret = deflateSetHeader (&strm, header);
+  if (ret != Z_OK)
+    exit (EXIT_FAILURE);
+  unsigned char *in = Calloc (BUF_SIZE, sizeof (char));
+  unsigned char *out = Calloc (BUF_SIZE, sizeof (char));
   do
     {
-      read_count = read (input_fd, in, BUFFER_SIZE);
+      read_count = read (input_fd, in, BUF_SIZE);
       assert (read_count != -1);
+      *read_bytes += read_count;
 
       if (read_count > 0)
         {
           strm.next_in = in;
           strm.next_out = out;
           strm.avail_in = read_count;
-          strm.avail_out = BUFFER_SIZE;
+          strm.avail_out = BUF_SIZE;
 
-          if (read_count < BUFFER_SIZE)
+          if (read_count < BUF_SIZE) 
             {
               int ret = deflate (&strm, Z_FINISH);
               assert (ret != Z_STREAM_ERROR);
-              write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
+              write_count = write (output_fd, out, BUF_SIZE - strm.avail_out);
               assert (write_count != -1);
               break;
             }
 
           int ret = deflate (&strm, Z_SYNC_FLUSH);
           assert (ret != Z_STREAM_ERROR);
-          write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
+          write_count = write (output_fd, out, BUF_SIZE - strm.avail_out);
           assert (write_count != -1);
+          *write_bytes += write_count;
         }
     }
   while (read_count > 0);
