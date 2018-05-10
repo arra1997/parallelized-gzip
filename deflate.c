@@ -84,6 +84,7 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
               assert (ret != Z_STREAM_ERROR);
               write_count = write (output_fd, out, BUF_SIZE - strm.avail_out);
               assert (write_count != -1);
+              *write_bytes += write_count;
               break;
             }
 
