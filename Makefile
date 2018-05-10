@@ -223,7 +223,7 @@ am_gzip_OBJECTS = bits.$(OBJEXT) deflate.$(OBJEXT) gzip.$(OBJEXT) \
 	unzip.$(OBJEXT) util.$(OBJEXT) utils.$(OBJEXT) zip.$(OBJEXT)
 gzip_OBJECTS = $(am_gzip_OBJECTS)
 am__DEPENDENCIES_1 =
-gzip_DEPENDENCIES = libver.a lib/libgzip.a $(am__DEPENDENCIES_1)
+gzip_DEPENDENCIES = libver.a $(am__DEPENDENCIES_1)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -1472,7 +1472,7 @@ top_srcdir = .
 ALL_RECURSIVE_TARGETS = distcheck-hook
 BUILT_SOURCES = version.c version.h
 SUBDIRS = lib doc . tests
-AM_CPPFLAGS = -I$(top_srcdir)/lib
+AM_CPPFLAGS = -I$(top_srcdir)/lib -lz
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS) -lz
 
 # Tell the linker to omit references to unused shared libraries.
@@ -1503,7 +1503,7 @@ gzip_SOURCES = \
   bits.c deflate.h deflate.c gzip.c inflate.c lzw.c \
   trees.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 
-gzip_LDADD = libver.a lib/libgzip.a $(LIB_CLOCK_GETTIME)
+gzip_LDADD = libver.a -lz $(LIB_CLOCK_GETTIME)
 SUFFIXES = .in
 gen_start_date = 2008-01-01
 

@@ -23,6 +23,7 @@
 #include <string.h>
 #include "utils.h"
 #include "stdlib.h"
+#include "deflate.h"
 
 #ifndef WINDOW_BITS
 #  define WINDOW_BITS 15
@@ -35,6 +36,8 @@
 #ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 16384
 #endif
+
+
 
 static void strm_init (z_stream *strm, int level)
 {

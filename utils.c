@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
+#include "utils.h"
 
 void *Calloc (size_t nelem, size_t elsize)
 {
