@@ -101,6 +101,7 @@ void help ()
  "  -q, --quiet       suppress all warnings",
  "  -1, --fast        compress faster",
  "  -9, --best        compress better",
+ "  -p, --parallel=N  parallelizes compression to use N threads",
     0};
   char const *const *p = help_msg;
   printf ("Usage: %s [OPTION]... [FILE]...\n", program_name);
