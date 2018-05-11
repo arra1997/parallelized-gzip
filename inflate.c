@@ -68,30 +68,42 @@ int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_b
   unsigned char *in = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
   unsigned char *out = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
   do
-  {
-    read_count = read (input_fd, in, BUFFER_SIZE_INFLATE);
-    assert (read_count != -1);
-    // printf("read count:%d\n", read_count);
-    if (read_count == 0)
-      break;
-    *read_bytes += read_count;
-    strm.next_in = in;
-    strm.avail_in = read_count;
-    flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_SYNC_FLUSH;
-    do
     {
-      strm.next_out = out;
-      strm.avail_out = BUFFER_SIZE_INFLATE;
-      // fprintf(stderr, "Before inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
-      ret = inflate (&strm, flush);
-      assert (ret != Z_STREAM_ERROR);
-      write_count = write (output_fd, out, BUFFER_SIZE_INFLATE - strm.avail_out);
-      // fprintf(stderr, "After inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
-      assert (write_count != -1);
-      *write_bytes += write_count;
+      read_count = read (input_fd, in, BUFFER_SIZE_INFLATE);
+      assert (read_count != -1);
+      // printf("read count:%d\n", read_count);
+      if (read_count == 0)
+        break;
+      *read_bytes += read_count;
+      strm.next_in = in;
+      strm.avail_in = read_count;
+      flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_NO_FLUSH;
+      do
+        {
+          strm.next_out = out;
+          strm.avail_out = BUFFER_SIZE_INFLATE;
+          // fprintf(stderr, "Before inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
+          ret = inflate (&strm, flush);
+          assert (ret != Z_STREAM_ERROR);
+          write_count = write (output_fd, out, BUFFER_SIZE_INFLATE - strm.avail_out);
+          // fprintf(stderr, "After inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
+          assert (write_count != -1);
+          *write_bytes += write_count;
+          if (ret == Z_STREAM_END && strm.avail_in != 0)
+            {
+              //If meet the end of stream, initialize the new stream
+              //pretend that output buffer is full to continue inflation
+              unsigned char *temp_in = strm.next_in;
+              int temp_avail_in = strm.avail_in;
+              strm_init (&strm);
+              strm.next_in = temp_in;
+              strm.avail_in = temp_avail_in;
+              strm.avail_out = 0; 
+              continue;
+            }
+        }
+      while (strm.avail_out == 0);
     }
-    while (strm.avail_out == 0);
-  }
   while (read_count > 0);
 
   inflateEnd (&strm);
