@@ -1703,7 +1703,6 @@ local int get_method(in)
                 return -3;
               }
           }
-
         WARN((stderr, "\n%s: %s: decompression OK, trailing garbage ignored\n",
               program_name, ifname));
         return -2;

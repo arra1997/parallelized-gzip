@@ -219,5 +219,6 @@ int unzip(in, out)
     bytes_in = 0;
     bytes_out = 0;
     inflate_file (in, out, &bytes_in, &bytes_out);
+    inptr = insize;
     return OK;
 }

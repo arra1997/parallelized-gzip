@@ -68,7 +68,7 @@ int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_b
     *read_bytes += read_count;
     strm.next_in = in;
     strm.avail_in = read_count;
-    flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_NO_FLUSH;
+    flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_SYNC_FLUSH;
     do
     {
       strm.next_out = out;
