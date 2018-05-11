@@ -16,4 +16,4 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-int inflate_file (int input_fd, int output_fd);
+int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_bytes);

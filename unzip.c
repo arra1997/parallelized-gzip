@@ -29,6 +29,8 @@
  */
 
 #include <config.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include "tailor.h"
 #include "gzip.h"
 #include "inflate.h"
@@ -211,6 +213,11 @@ int unzip(in, out)
     // exit_code = ERROR;
     // if (!test) abort_gzip();
     // return err;
-    inflate_file (in, out);
+    off_t ret = lseek (in, 0, SEEK_SET);
+    if (ret == -1)
+        exit (EXIT_FAILURE);
+    bytes_in = 0;
+    bytes_out = 0;
+    inflate_file (in, out, &bytes_in, &bytes_out);
     return OK;
 }

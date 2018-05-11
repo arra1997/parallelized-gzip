@@ -33,8 +33,8 @@
 #  define GZIP_ENCODING 16
 #endif
 
-#ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 16384
+#ifndef BUFFER_SIZE_INFLATE
+#  define BUFFER_SIZE_INFLATE 16384
 #endif
 
 static void strm_init (z_stream *strm)
@@ -48,7 +48,7 @@ static void strm_init (z_stream *strm)
     exit (EXIT_FAILURE);
 }
 
-int inflate_file (int input_fd, int output_fd)
+int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_bytes)
 {
   int ret;
   int flush;
@@ -56,27 +56,30 @@ int inflate_file (int input_fd, int output_fd)
   int write_count;
   z_stream strm;
   strm_init (&strm);
-  unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
-  unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
+  unsigned char *in = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
+  unsigned char *out = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
   do
   {
-    read_count = read (input_fd, in, BUFFER_SIZE);
+    read_count = read (input_fd, in, BUFFER_SIZE_INFLATE);
     assert (read_count != -1);
+    // printf("read count:%d\n", read_count);
     if (read_count == 0)
       break;
+    *read_bytes += read_count;
     strm.next_in = in;
     strm.avail_in = read_count;
-    //fprintf(stderr, "Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
-    flush = (read_count < BUFFER_SIZE) ? Z_FINISH : Z_NO_FLUSH;
+    flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_NO_FLUSH;
     do
     {
       strm.next_out = out;
-      strm.avail_out = BUFFER_SIZE;
+      strm.avail_out = BUFFER_SIZE_INFLATE;
+      // fprintf(stderr, "Before inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
       ret = inflate (&strm, flush);
       assert (ret != Z_STREAM_ERROR);
-      write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
-      //fprintf(stderr, "After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
+      write_count = write (output_fd, out, BUFFER_SIZE_INFLATE - strm.avail_out);
+      // fprintf(stderr, "After inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
       assert (write_count != -1);
+      *write_bytes += write_count;
     }
     while (strm.avail_out == 0);
   }

@@ -35,8 +35,8 @@
 #  define GZIP_ENCODING 16
 #endif
 
-#ifndef BUF_SIZE
-#  define BUF_SIZE 16384
+#ifndef BUFFER_SIZE_DEFLATE
+#  define BUFFER_SIZE_DEFLATE 16384
 #endif
 
 
@@ -63,11 +63,11 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
   int ret = deflateSetHeader (&strm, header);
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
-  unsigned char *in = Calloc (BUF_SIZE, sizeof (char));
-  unsigned char *out = Calloc (BUF_SIZE, sizeof (char));
+  unsigned char *in = Calloc (BUFFER_SIZE_DEFLATE, sizeof (char));
+  unsigned char *out = Calloc (BUFFER_SIZE_DEFLATE, sizeof (char));
   do
     {
-      read_count = read (input_fd, in, BUF_SIZE);
+      read_count = read (input_fd, in, BUFFER_SIZE_DEFLATE);
       assert (read_count != -1);
       *read_bytes += read_count;
 
@@ -76,13 +76,13 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
           strm.next_in = in;
           strm.next_out = out;
           strm.avail_in = read_count;
-          strm.avail_out = BUF_SIZE;
+          strm.avail_out = BUFFER_SIZE_DEFLATE;
 
-          if (read_count < BUF_SIZE) 
+          if (read_count < BUFFER_SIZE_DEFLATE) 
             {
               int ret = deflate (&strm, Z_FINISH);
               assert (ret != Z_STREAM_ERROR);
-              write_count = write (output_fd, out, BUF_SIZE - strm.avail_out);
+              write_count = write (output_fd, out, BUFFER_SIZE_DEFLATE - strm.avail_out);
               assert (write_count != -1);
               *write_bytes += write_count;
               break;
@@ -90,7 +90,7 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
 
           int ret = deflate (&strm, Z_SYNC_FLUSH);
           assert (ret != Z_STREAM_ERROR);
-          write_count = write (output_fd, out, BUF_SIZE - strm.avail_out);
+          write_count = write (output_fd, out, BUFFER_SIZE_DEFLATE - strm.avail_out);
           assert (write_count != -1);
           *write_bytes += write_count;
         }
