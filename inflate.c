@@ -37,6 +37,15 @@
 #  define BUFFER_SIZE_INFLATE 16384
 #endif
 
+/*
+strm_init(z_stream *strm):
+this function sets the necessary flags and creates the necessary structures to
+call inflateInit2, which will initialize the inflate() function to allow it to
+decompress .gz formatted files
+
+strm is a structure that contains information needed to initialize the inflate
+function of zlib
+*/
 static void strm_init (z_stream *strm)
 {
   int ret;

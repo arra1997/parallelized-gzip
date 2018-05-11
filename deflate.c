@@ -40,7 +40,18 @@
 #endif
 
 
+/*
+strm_init(z_stream *strm, int level):
+this function sets the necessary flags and creates the necessary structures to
+call deflateInit2, which will initialize the deflate() function to allow it to
+compress files in gzip format into .gz files
 
+strm is a structure that contains information needed to initialize the inflate
+function of zlib
+
+level is the compression level that the algorithm will compress at, higher is better
+but slower
+*/
 static void strm_init (z_stream *strm, int level)
 {
     strm->zalloc = Z_NULL;
@@ -78,7 +89,8 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
           strm.avail_in = read_count;
           strm.avail_out = BUFFER_SIZE_DEFLATE;
 
-          if (read_count < BUFFER_SIZE_DEFLATE) 
+          //if we're at the end of the file, compress the last chunk using the Z_FINISH flag
+          if (read_count < BUFFER_SIZE_DEFLATE)
             {
               int ret = deflate (&strm, Z_FINISH);
               assert (ret != Z_STREAM_ERROR);
@@ -88,6 +100,7 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
               break;
             }
 
+          //if not at the end of file, compress each chunk normally, using Z_SYNC_FLUSH
           int ret = deflate (&strm, Z_SYNC_FLUSH);
           assert (ret != Z_STREAM_ERROR);
           write_count = write (output_fd, out, BUFFER_SIZE_DEFLATE - strm.avail_out);
