@@ -90,7 +90,6 @@ int inflate_file (int input_fd, int output_fd)
       }
     }
     while (strm.avail_out == 0);
-    printf("\n");
   }
   while (read_count > 0);
 
