@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "inflate.h"
 #include "utils.h"
 
 #ifndef WINDOW_BITS
@@ -31,8 +32,8 @@
 #  define GZIP_ENCODING 16
 #endif
 
-#ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 16384
+#ifndef BUFFER_SIZE_INFLATE
+#  define BUFFER_SIZE_INFLATE 16384
 #endif
 
 static void strm_init (z_stream *strm)
@@ -41,7 +42,7 @@ static void strm_init (z_stream *strm)
   strm->zalloc = Z_NULL;
   strm->zfree = Z_NULL;
   strm->opaque = Z_NULL;
-  ret = inflateInit2(strm, WINDOW_BITS | 16);
+  ret = inflateInit2(strm, WINDOW_BITS | GZIP_ENCODING);
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
 }
@@ -54,36 +55,39 @@ int inflate_file (int input_fd, int output_fd)
   int write_count;
   z_stream strm;
   strm_init (&strm);
-  unsigned char *in = Calloc (BUFFER_SIZE, sizeof (char));
-  unsigned char *out = Calloc (BUFFER_SIZE, sizeof (char));
+  unsigned char *in = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
+  unsigned char *out = Calloc (BUFFER_SIZE_INFLATE, sizeof (char));
   do
   {
-    read_count = read (input_fd, in, BUFFER_SIZE);
+    read_count = read (input_fd, in, BUFFER_SIZE_INFLATE);
     assert (read_count != -1);
     if (read_count == 0)
       break;
     strm.next_in = in;
     strm.avail_in = read_count;
-    flush = (read_count < BUFFER_SIZE) ? Z_FINISH : Z_NO_FLUSH;
+    flush = (read_count < BUFFER_SIZE_INFLATE) ? Z_FINISH : Z_NO_FLUSH;
     do
     {
       strm.next_out = out;
-      strm.avail_out = BUFFER_SIZE;
-      printf("Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
+      strm.avail_out = BUFFER_SIZE_INFLATE;
+      //printf("Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
       ret = inflate (&strm, flush);
       assert (ret != Z_STREAM_ERROR);
-      write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
-      /*
+      write_count = write (output_fd, out, BUFFER_SIZE_INFLATE - strm.avail_out);
+      assert (write_count != -1);
+      //printf("After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
       if (ret == Z_STREAM_END && strm.avail_in != 0)
       {
-        //If meet the end of stream,
+        //If meet the end of stream, initialize the new stream
         //pretend that output buffer is full to continue inflation
+        unsigned char *temp_in = strm.next_in;
+        int temp_avail_in = strm.avail_in;
+        strm_init (&strm);
+        strm.next_in = temp_in;
+        strm.avail_in = temp_avail_in;
         strm.avail_out = 0; 
         continue;
       }
-      */
-      printf("After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
-      assert (write_count != -1);
     }
     while (strm.avail_out == 0);
     printf("\n");
