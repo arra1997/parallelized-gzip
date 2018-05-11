@@ -64,19 +64,29 @@ int inflate_file (int input_fd, int output_fd)
       break;
     strm.next_in = in;
     strm.avail_in = read_count;
-    //fprintf(stderr, "Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
     flush = (read_count < BUFFER_SIZE) ? Z_FINISH : Z_NO_FLUSH;
     do
     {
       strm.next_out = out;
       strm.avail_out = BUFFER_SIZE;
+      printf("Before inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
       ret = inflate (&strm, flush);
       assert (ret != Z_STREAM_ERROR);
       write_count = write (output_fd, out, BUFFER_SIZE - strm.avail_out);
-      //fprintf(stderr, "After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
+      /*
+      if (ret == Z_STREAM_END && strm.avail_in != 0)
+      {
+        //If meet the end of stream,
+        //pretend that output buffer is full to continue inflation
+        strm.avail_out = 0; 
+        continue;
+      }
+      */
+      printf("After inflation:: avail_in: %d bytes, avail_out: %d bytes\n", strm.avail_in, strm.avail_out);
       assert (write_count != -1);
     }
     while (strm.avail_out == 0);
+    printf("\n");
   }
   while (read_count > 0);
 
