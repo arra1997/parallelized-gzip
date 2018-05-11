@@ -22,7 +22,11 @@
 #include <string.h>
 #include "utils.h"
 #include "stdlib.h"
-
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #ifndef WINDOW_BITS
 #  define WINDOW_BITS 15
@@ -35,6 +39,18 @@
 #ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 16384
 #endif
+
+
+typedef struct file_struct
+{
+  char *input_buffer;
+  char *output_buffer;
+  int level;
+  int size;
+  int input_size;
+  int output_size;
+}file_struct;
+
 
 static void strm_init (z_stream *strm, int level)
 {
@@ -91,3 +107,55 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level)
   free (out);
   return 0;
 }
+
+
+void* compress_t(void*(f_struct_ptr))
+{
+  file_struct* file_struct_ptr = (file_struct*) f_struct_ptr;
+  z_stream strm;
+  strm_init (&strm, file_struct_ptr->level);
+  strm.next_in = file_struct_ptr->input_buffer;
+  strm.next_out = file_struct_ptr->output_buffer;
+  strm.avail_in = file_struct_ptr->size;
+  strm.avail_out = file_struct_ptr->size;
+  assert(deflate(&strm, Z_FINISH) != Z_STREAM_ERROR);
+  file_struct_ptr->output_size = file_struct_ptr->size - strm.avail_out;
+}
+
+int deflate_file_parallel (const char *input_file_name, int output_fd, long block_size, int level, int num_threads)
+{
+  int i;
+  struct stat finfo;
+  int fd = open(input_file_name, O_RDONLY);
+  assert(fd!=-1);
+  fstat(fd, &finfo);
+  int filesize = finfo.st_size;
+  int length_buffer = filesize/num_threads + 1;
+  
+  file_struct *file_structs = Calloc(num_threads, sizeof(file_struct));
+  for (i = 0; i < num_threads; ++i)
+    {
+      file_structs[i].input_buffer = Calloc (length_buffer, sizeof(char));
+      file_structs[i].output_buffer = Calloc (length_buffer, sizeof(char));
+      file_structs[i].level = level;
+      file_structs[i].size = length_buffer;
+      int ret = read (fd, file_structs[i].input_buffer, length_buffer);
+      file_structs[i].input_size = ret;
+    }
+  pthread_t *threads = Calloc (num_threads, sizeof(pthread_t));
+  for (i = 0; i < num_threads; ++i)
+    {
+      pthread_create(&threads[i], NULL, compress_t, (void*)&file_structs[i]);
+    }
+  for (i = 0; i < num_threads; ++i)
+    {
+      pthread_join(threads[i], NULL);
+    }
+  for (i = 0; i < num_threads; ++i)
+    {
+      assert(write(output_fd, file_structs[i].output_buffer, file_structs[i].output_size) != -1);
+      free(file_structs[i].input_buffer);
+      free(file_structs[i].output_buffer);
+    }
+}
+   

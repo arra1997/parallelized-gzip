@@ -42,6 +42,7 @@ char *program_name = "gzip";
 int to_stdout = 0;
 int keep = 0;
 int force = 0;
+int num_threads = 0;
 long block_size = 128;
 int compression_level = 6;
 int quiet = 0;
@@ -59,11 +60,12 @@ static char const *const license_msg[] = {
 
 void treat_file(const char *input_file);
 
-static char const short_options[] = "cdkfLhHqvVS123456789";
+static char const short_options[] = "cdkpfLhHqvVS123456789";
 /* How about a struct to map option characters to integer flags?*/
 static const struct option long_options[] =
   {
     {"stdout", no_argument, NULL, 'c'},
+    {"parallel", required_argument, NULL, 'p'},
     {"help", no_argument, NULL, 'h'},
     {"keep", no_argument, NULL, 'k'},
     {"force", no_argument, NULL, 'f'},
@@ -157,8 +159,11 @@ int main (int argc, char **argv)
           case 'f':
             force = 1;
             break;
+	  case 'p':
+	    num_threads = atoi(optarg);
+	    break;
           case 'b':
-            block_size = *optarg;
+            block_size = atoi(optarg);
             break;
           case 'L':
             license ();
@@ -230,12 +235,21 @@ void treat_file(const char *input_file)
 
   if (!decompress)
     {
+      if (!num_threads)
+	{
       deflate_file (i_fd, o_fd, block_size*128, compression_level);
+	}
+      else
+	{
+	  deflate_file_parallel(input_file, o_fd, block_size*128, compression_level, num_threads);
+	}
     }
   else
     {
       inflate_file (i_fd, o_fd);
     }
+  close(i_fd);
+  close(o_fd);
   if (!keep)
     {
       Unlink (input_file);
@@ -253,7 +267,7 @@ void treat_file(const char *input_file)
         }
       close (fd);
     }
-
+  
   free (output_file);
 }
 

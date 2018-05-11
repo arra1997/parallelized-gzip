@@ -1,5 +1,5 @@
 gzip: deflate.c deflate.h gzip.c
-	gcc -o gzip deflate.c gzip.c utils.c inflate.c -lz
+	gcc -o gzip deflate.c gzip.c utils.c inflate.c -lz -lpthread
 
 clean:
 	rm -f gzip gzip.tar.gz
