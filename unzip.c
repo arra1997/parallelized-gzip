@@ -31,6 +31,7 @@
 #include <config.h>
 #include "tailor.h"
 #include "gzip.h"
+#include "inflate.h"
 
 /* PKZIP header definitions */
 #define LOCSIG 0x04034b50L      /* four-byte lead-in (lsb first) */
@@ -39,14 +40,14 @@
 #define  EXTFLG 8               /*  bit for extended local header */
 #define LOCHOW 8                /* offset of compression method */
 /* #define LOCTIM 10               UNUSED file mod time (for decryption) */
-#define LOCCRC 14               /* offset of crc */
-#define LOCSIZ 18               /* offset of compressed size */
-#define LOCLEN 22               /* offset of uncompressed length */
+// #define LOCCRC 14               /* offset of crc */
+// #define LOCSIZ 18               /* offset of compressed size */
+// #define LOCLEN 22               /* offset of uncompressed length */
 #define LOCFIL 26               /* offset of file name field length */
 #define LOCEXT 28               /* offset of extra field length */
 #define LOCHDR 30               /* size of local header, including sig */
-#define EXTHDR 16               /* size of extended local header, inc sig */
-#define RAND_HEAD_LEN  12       /* length of encryption random header */
+// #define EXTHDR 16               /* size of extended local header, inc sig */
+// #define RAND_HEAD_LEN  12       /* length of encryption random header */
 
 
 /* Globals */
@@ -110,104 +111,106 @@ int check_zipfile(in)
 int unzip(in, out)
     int in, out;   /* input and output file descriptors */
 {
-    ulg orig_crc = 0;       /* original crc */
-    ulg orig_len = 0;       /* original uncompressed length */
-    int n;
-    uch buf[EXTHDR];        /* extended local header */
-    int err = OK;
+    // ulg orig_crc = 0;       /* original crc */
+    // ulg orig_len = 0;       /* original uncompressed length */
+    // int n;
+    // uch buf[EXTHDR];        /* extended local header */
+    // int err = OK;
 
-    ifd = in;
-    ofd = out;
+    // ifd = in;
+    // ofd = out;
 
-    updcrc(NULL, 0);           /* initialize crc */
+    // updcrc(NULL, 0);           /* initialize crc */
 
-    if (pkzip && !ext_header) {  /* crc and length at the end otherwise */
-        orig_crc = LG(inbuf + LOCCRC);
-        orig_len = LG(inbuf + LOCLEN);
-    }
+    // if (pkzip && !ext_header) {  /* crc and length at the end otherwise */
+    //     orig_crc = LG(inbuf + LOCCRC);
+    //     orig_len = LG(inbuf + LOCLEN);
+    // }
 
-    /* Decompress */
-    if (method == DEFLATED)  {
+    // /* Decompress */
+    // if (method == DEFLATED)  {
 
-        int res = inflate();
+    //     int res = 0; //////////////////////////
 
-        if (res == 3) {
-            xalloc_die ();
-        } else if (res != 0) {
-            gzip_error ("invalid compressed data--format violated");
-        }
+    //     if (res == 3) {
+    //         xalloc_die ();
+    //     } else if (res != 0) {
+    //         gzip_error ("invalid compressed data--format violated");
+    //     }
 
-    } else if (pkzip && method == STORED) {
+    // } else if (pkzip && method == STORED) {
 
-        register ulg n = LG(inbuf + LOCLEN);
+    //     register ulg n = LG(inbuf + LOCLEN);
 
-        if (n != LG(inbuf + LOCSIZ) - (decrypt ? RAND_HEAD_LEN : 0)) {
+    //     if (n != LG(inbuf + LOCSIZ) - (decrypt ? RAND_HEAD_LEN : 0)) {
 
-            fprintf(stderr, "len %lu, siz %lu\n", n, LG(inbuf + LOCSIZ));
-            gzip_error ("invalid compressed data--length mismatch");
-        }
-        while (n--) {
-            uch c = (uch)get_byte();
-            put_ubyte(c);
-        }
-        flush_window();
-    } else {
-        gzip_error ("internal error, invalid method");
-    }
+    //         fprintf(stderr, "len %lu, siz %lu\n", n, LG(inbuf + LOCSIZ));
+    //         gzip_error ("invalid compressed data--length mismatch");
+    //     }
+    //     while (n--) {
+    //         uch c = (uch)get_byte();
+    //         put_ubyte(c);
+    //     }
+    //     flush_window();
+    // } else {
+    //     gzip_error ("internal error, invalid method");
+    // }
 
-    /* Get the crc and original length */
-    if (!pkzip) {
-        /* crc32  (see algorithm.doc)
-         * uncompressed input size modulo 2^32
-         */
-        for (n = 0; n < 8; n++) {
-            buf[n] = (uch)get_byte(); /* may cause an error if EOF */
-        }
-        orig_crc = LG(buf);
-        orig_len = LG(buf+4);
+    // /* Get the crc and original length */
+    // if (!pkzip) {
+    //     /* crc32  (see algorithm.doc)
+    //      * uncompressed input size modulo 2^32
+    //      */
+    //     for (n = 0; n < 8; n++) {
+    //         buf[n] = (uch)get_byte(); /* may cause an error if EOF */
+    //     }
+    //     orig_crc = LG(buf);
+    //     orig_len = LG(buf+4);
 
-    } else if (ext_header) {  /* If extended header, check it */
-        /* signature - 4bytes: 0x50 0x4b 0x07 0x08
-         * CRC-32 value
-         * compressed size 4-bytes
-         * uncompressed size 4-bytes
-         */
-        for (n = 0; n < EXTHDR; n++) {
-            buf[n] = (uch)get_byte(); /* may cause an error if EOF */
-        }
-        orig_crc = LG(buf+4);
-        orig_len = LG(buf+12);
-    }
+    // } else if (ext_header) {  /* If extended header, check it */
+    //     /* signature - 4bytes: 0x50 0x4b 0x07 0x08
+    //      * CRC-32 value
+    //      * compressed size 4-bytes
+    //      * uncompressed size 4-bytes
+    //      */
+    //     for (n = 0; n < EXTHDR; n++) {
+    //         buf[n] = (uch)get_byte(); /* may cause an error if EOF */
+    //     }
+    //     orig_crc = LG(buf+4);
+    //     orig_len = LG(buf+12);
+    // }
 
-    /* Validate decompression */
-    if (orig_crc != updcrc(outbuf, 0)) {
-        fprintf(stderr, "\n%s: %s: invalid compressed data--crc error\n",
-                program_name, ifname);
-        err = ERROR;
-    }
-    if (orig_len != (ulg)(bytes_out & 0xffffffff)) {
-        fprintf(stderr, "\n%s: %s: invalid compressed data--length error\n",
-                program_name, ifname);
-        err = ERROR;
-    }
+    // /* Validate decompression */
+    // if (orig_crc != updcrc(outbuf, 0)) {
+    //     fprintf(stderr, "\n%s: %s: invalid compressed data--crc error\n",
+    //             program_name, ifname);
+    //     err = ERROR;
+    // }
+    // if (orig_len != (ulg)(bytes_out & 0xffffffff)) {
+    //     fprintf(stderr, "\n%s: %s: invalid compressed data--length error\n",
+    //             program_name, ifname);
+    //     err = ERROR;
+    // }
 
-    /* Check if there are more entries in a pkzip file */
-    if (pkzip && inptr + 4 < insize && LG(inbuf+inptr) == LOCSIG) {
-        if (to_stdout) {
-            WARN((stderr,
-                  "%s: %s has more than one entry--rest ignored\n",
-                  program_name, ifname));
-        } else {
-            /* Don't destroy the input zip file */
-            fprintf(stderr,
-                    "%s: %s has more than one entry -- unchanged\n",
-                    program_name, ifname);
-            err = ERROR;
-        }
-    }
-    ext_header = pkzip = 0; /* for next file */
-    if (err == OK) return OK;
-    exit_code = ERROR;
-    if (!test) abort_gzip();
-    return err;
+    // /* Check if there are more entries in a pkzip file */
+    // if (pkzip && inptr + 4 < insize && LG(inbuf+inptr) == LOCSIG) {
+    //     if (to_stdout) {
+    //         WARN((stderr,
+    //               "%s: %s has more than one entry--rest ignored\n",
+    //               program_name, ifname));
+    //     } else {
+    //         /* Don't destroy the input zip file */
+    //         fprintf(stderr,
+    //                 "%s: %s has more than one entry -- unchanged\n",
+    //                 program_name, ifname);
+    //         err = ERROR;
+    //     }
+    // }
+    // ext_header = pkzip = 0; /* for next file */
+    // if (err == OK) return OK;
+    // exit_code = ERROR;
+    // if (!test) abort_gzip();
+    // return err;
+    inflate_file (in, out);
+    return OK;
 }

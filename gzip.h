@@ -318,4 +318,4 @@ extern void display_ratio (off_t num, off_t den, FILE *file);
 extern void fprint_off    (FILE *, off_t, int);
 
         /* in inflate.c */
-//extern int inflate (void);
+// extern int inflate (void);
