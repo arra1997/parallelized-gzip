@@ -11,6 +11,7 @@ typedef struct lock_t
 lock_t *new_lock(unsigned int users = 1)
 {
   lock_t *lock;
+  lock = Malloc(sizeof(lock_t));
   lock->count = users;
   lock->semaphore = Malloc(sizeof(lock_t));
   assert(sem_init(&(lock.semaphore), 0, users) == 0);
@@ -45,18 +46,19 @@ void free_lock(lock_t* lock)
 // knows what pool it belongs to, so that it can be returned.
 
 // A space (one buffer for each space).
-struct space
+typedef struct space_t
 {
   lock_t *use;            // return to pool when unused
   unsigned char *buf;     // buffer of size size
   size_t size;            // current size of this buffer
   size_t len;             // for application usage (initially zero)
-  struct pool *pool;      // pool to return to
-  struct space *next;     // for pool linked list
-};
+  pool_t *pool;      // pool to return to
+  space_t *next;     // for pool linked list
+} space_t;
 
-static void new_space(struct space *space, unsigned int users, int size)
+static void new_space(space_t *space, unsigned int users, int size)
 {
+  space = Malloc(sizeof(space_t));
   space->use = new_lock();
   space->buf = Calloc(size, sizeof(unsigned char));
   space->size = size;
@@ -66,17 +68,18 @@ static void new_space(struct space *space, unsigned int users, int size)
 }
 
 // Pool of spaces (one pool for each type needed).
-struct pool
+typedef struct pool_t
 {
   lock_t *have;           // unused spaces available, for list
-  struct space *head;     // linked list of available buffers
+  space_t *head;     // linked list of available buffers
   size_t size;            // size of new buffers in this pool
   int limit;              // number of new spaces allowed, or -1
   int made;               // number of buffers made
   int users_per_space;
-};
+} pool_t;
 
-static void new_pool(struct pool *pool, size_t size, int limit, int users_per_space = 1) {
+static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space = 1) {
+  pool = Malloc(sizeof(pool_t));
   pool->have = new_lock(limit);
   pool->head = NULL;
   pool->size = size;
@@ -86,9 +89,9 @@ static void new_pool(struct pool *pool, size_t size, int limit, int users_per_sp
 }
 
 
-static struct space *get_space(struct pool *pool)
+static space_t *get_space(pool_t *pool)
 {
-  struct space *space;
+  space_t *space;
   get_lock(pool->have);
   
   // if a space is available, pull it from the free list and return it
