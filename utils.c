@@ -34,6 +34,17 @@ void *Calloc (size_t nelem, size_t elsize)
   return addr;
 }
 
+void *Malloc(size_t size)
+{
+   void *addr = malloc(size);
+   if (addr == NULL)
+   {
+      printf ("Insufficient memory");
+      assert (addr != NULL);
+   }
+   return addr;
+}
+
 void Unlink (const char* pathname)
 {
   assert (unlink (pathname) == 0);
