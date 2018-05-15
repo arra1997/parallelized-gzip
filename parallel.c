@@ -101,6 +101,7 @@ static space_t *get_space(pool_t *pool)
       get_lock(space->use);
       pool->head = space->next;
       space->len = 0;
+      free_lock(pool->have);
       return space;
     }
 
@@ -111,6 +112,23 @@ static space_t *get_space(pool_t *pool)
   pool->made++;
   space = new_space(space, pool->users_per_space, pool->size);
   space->pool = pool;
+  free_lock(pool->have);
+  return space;
 }
 
 
+static void drop_space(space_t* space)
+{
+  if (space == NULL)
+    return;
+  pool_t pool = space->pool;
+  get_lock(pool->have);
+  free_lock(space->have);
+  if (is_free(space->have))
+    {
+      space->next = pool->head;
+      pool->head = space;
+      space->len = 0;
+    }
+  free_lock(pool->have);
+}
