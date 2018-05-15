@@ -155,3 +155,21 @@ void free_pool(pool_t* pool)
   free_lock(pool->have);
 }
   
+// -- job queue used for parallel compression --
+
+// Compress or write job (passed from compress list to write list). If seq is
+// equal to -1, compress_thread is instructed to return; if more is false then
+// this is the last chunk, which after writing tells write_thread to return.
+struct job {
+  long seq;                   // sequence number
+  int more;                   // true if this is not the last chunk
+  space_t *in;                // input data to compress
+  space_t *out;               // dictionary or resulting compressed data
+  space_t *lens;              // coded list of flush block lengths
+  unsigned long check;        // check value for input data
+  lock *calc;                 // released when check calculation complete
+  struct job *next;           // next job in the list (either list)
+};
+
+
+
