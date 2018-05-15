@@ -11,23 +11,24 @@ lock_t *new_lock(unsigned int users = 1)
 {
   lock_t *lock;
   lock->count = users;
+  lock->semaphore = malloc(sizeof(lock_t));
   assert(sem_init(&(lock.semaphore), 0, users) == 0);
-  return &lock;
+  return lock;
 }
 
-void get_lock(lock* lock)
+void get_lock(lock_t* lock)
 {
   assert(sem_wait(lock->semaphore) == 0);
 }
 
-int is_free(lock* lock)
+int is_free(lock_t* lock)
 {
   int value;
   sem_getvalue(lock->semaphore, value);
-  return value == count;
+  return (value == count);
 }
 
-void free_lock(lock* lock)
+void free_lock(lock_t* lock)
 {
   assert(sem_post(lock->semaphore) == 0);
 }
@@ -45,7 +46,7 @@ void free_lock(lock* lock)
 // A space (one buffer for each space).
 struct space
 {
-  lock *use;              // return to pool when unused
+  lock_t *use;            // return to pool when unused
   unsigned char *buf;     // buffer of size size
   size_t size;            // current size of this buffer
   size_t len;             // for application usage (initially zero)
@@ -66,7 +67,7 @@ static void new_space(struct space *space, unsigned int users, int size)
 // Pool of spaces (one pool for each type needed).
 struct pool
 {
-  lock *have;             // unused spaces available, lock for list
+  lock_t *have;           // unused spaces available, for list
   struct space *head;     // linked list of available buffers
   size_t size;            // size of new buffers in this pool
   int limit;              // number of new spaces allowed, or -1
@@ -80,7 +81,7 @@ static void new_pool(struct pool *pool, size_t size, int limit, int users_per_sp
   pool->size = size;
   pool->limit = limit;
   pool->made = 0;
-  pool->users_per_space = 1;
+  pool->users_per_space = users_per_space;
 }
 
 
