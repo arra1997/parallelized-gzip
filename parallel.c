@@ -160,7 +160,7 @@ void free_pool(pool_t* pool)
 // Compress or write job (passed from compress list to write list). If seq is
 // equal to -1, compress_thread is instructed to return; if more is false then
 // this is the last chunk, which after writing tells write_thread to return.
-struct job {
+typedef struct job {
   long seq;                   // sequence number
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
@@ -169,7 +169,7 @@ struct job {
   unsigned long check;        // check value for input data
   lock *calc;                 // released when check calculation complete
   struct job *next;           // next job in the list (either list)
-};
+}job;
 
 
 
