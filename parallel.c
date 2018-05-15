@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <semaphore.h>
+#include "utils.h"
 
 typedef struct lock_t
 {
@@ -11,7 +12,7 @@ lock_t *new_lock(unsigned int users = 1)
 {
   lock_t *lock;
   lock->count = users;
-  lock->semaphore = malloc(sizeof(lock_t));
+  lock->semaphore = Malloc(sizeof(lock_t));
   assert(sem_init(&(lock.semaphore), 0, users) == 0);
   return lock;
 }
@@ -57,7 +58,7 @@ struct space
 static void new_space(struct space *space, unsigned int users, int size)
 {
   space->use = new_lock();
-  space->buf = calloc(size, sizeof(unsigned char));
+  space->buf = Calloc(size, sizeof(unsigned char));
   space->size = size;
   space->len = 0;
   space->pool = NULL;
