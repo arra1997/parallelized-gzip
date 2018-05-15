@@ -1,16 +1,16 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-struct lock
+typedef struct lock_t
 {
   sem_t semaphore;
   unsigned int count;
-}lock;
+} lock_t;
 
-lock* new_lock(unsigned int users = 1)
+lock_t *new_lock(unsigned int users = 1)
 {
-  lock lock;
-  lock.count = users;
+  lock_t *lock;
+  lock->count = users;
   assert(sem_init(&(lock.semaphore), 0, users) == 0);
   return &lock;
 }
