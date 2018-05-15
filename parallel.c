@@ -132,3 +132,26 @@ static void drop_space(space_t* space)
     }
   free_lock(pool->have);
 }
+
+// Free the memory resources of a pool (unused buffers)
+void free_pool(pool_t* pool)
+{
+  space_t *space;
+  get_lock(pool->have);
+  count = 0;
+  if (pool->head == NULL)
+    {
+      free_lock(pool->have);
+      return;
+    }
+  do
+    {
+      space = pool->head;
+      pool->head = space->next;
+      free(space->buf);
+      free(space);
+      pool->made--;      
+    } while (pool->head != NULL);
+  free_lock(pool->have);
+}
+  
