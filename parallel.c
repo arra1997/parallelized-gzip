@@ -1,20 +1,21 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "utils.h"
+#include <assert.h>
 
 typedef struct lock_t
 {
-  sem_t semaphore;
+  sem_t *semaphore;
   unsigned int count;
 } lock_t;
 
-lock_t *new_lock(unsigned int users = 1)
+lock_t *new_lock(unsigned int users)
 {
   lock_t *lock;
   lock = Malloc(sizeof(lock_t));
+  lock->semaphore = Malloc(sizeof(sem_t));
   lock->count = users;
-  lock->semaphore = Malloc(sizeof(lock_t));
-  assert(sem_init(&(lock.semaphore), 0, users) == 0);
+  assert(sem_init(lock->semaphore, 0, users) == 0);
   return lock;
 }
 
@@ -26,8 +27,8 @@ void get_lock(lock_t* lock)
 int is_free(lock_t* lock)
 {
   int value;
-  sem_getvalue(lock->semaphore, value);
-  return (value == count);
+  sem_getvalue(lock->semaphore, &value);
+  return (value == lock->count);
 }
 
 void free_lock(lock_t* lock)
@@ -59,7 +60,7 @@ typedef struct space_t
 static void new_space(space_t *space, unsigned int users, int size)
 {
   space = Malloc(sizeof(space_t));
-  space->use = new_lock();
+  space->use = new_lock(1);
   space->buf = Calloc(size, sizeof(unsigned char));
   space->size = size;
   space->len = 0;
@@ -170,6 +171,4 @@ typedef struct job {
   lock *calc;                 // released when check calculation complete
   struct job *next;           // next job in the list (either list)
 }job;
-
-
 
