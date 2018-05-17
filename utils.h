@@ -19,4 +19,5 @@
 #include <stdlib.h>
 
 void Unlink (const char* pathname);
+void *Malloc(size_t size);
 void *Calloc (size_t nelem, size_t elsize);
