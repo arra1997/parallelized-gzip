@@ -213,9 +213,12 @@ int unzip(in, out)
     // exit_code = ERROR;
     // if (!test) abort_gzip();
     // return err;
-    off_t ret = lseek (in, 0, SEEK_SET);
-    if (ret == -1)
-        exit (EXIT_FAILURE);
+    if (in != STDIN_FILENO)
+      {
+        off_t ret = lseek (in, 0, SEEK_SET);
+        if (ret == -1)
+          exit (EXIT_FAILURE);
+      }
     bytes_in = 0;
     bytes_out = 0;
     inflate_file (in, out, &bytes_in, &bytes_out);

@@ -71,9 +71,10 @@ int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_b
     {
       read_count = read (input_fd, in, BUFFER_SIZE_INFLATE);
       assert (read_count != -1);
-      // printf("read count:%d\n", read_count);
       if (read_count == 0)
         break;
+      // printf("%.*s",read_count,in);
+      // printf("bytes %d\n", read_count);
       *read_bytes += read_count;
       strm.next_in = in;
       strm.avail_in = read_count;

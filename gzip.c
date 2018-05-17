@@ -780,14 +780,13 @@ local void treat_stdin()
     if (decompress) {
         method = get_method(ifd);
         if (method < 0) {
-            do_exit(exit_code); /* error message already emitted */
+            do_exit(exit_code);  //error message already emitted 
         }
     }
     if (list) {
         do_list(ifd, method);
         return;
     }
-
     /* Actually do the compression/decompression. Loop over zipped members.
      */
     for (;;) {
@@ -1599,7 +1598,7 @@ local int get_method(in)
                 /* Discard the old name */
                 discard_input_bytes (-1, flags);
             } else {
-                /* Copy the base name. Keep a directory prefix intact. */
+                 //Copy the base name. Keep a directory prefix intact. 
                 char *p = gzip_base_name (ofname);
                 char *base = p;
                 for (;;) {
@@ -1653,7 +1652,10 @@ local int get_method(in)
          */
         inptr = 0;
         work = unzip;
-        if (check_zipfile(in) != OK) return -1;
+        if (ifd != STDIN_FILENO)
+          {
+            if (check_zipfile(in) != OK) return -1;
+          }
         /* check_zipfile may get ofname from the local header */
         last_member = 1;
 
