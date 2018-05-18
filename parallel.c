@@ -176,7 +176,7 @@ struct job_t
   space_t *out;               // dictionary or resulting compressed data
   space_t *lens;              // coded list of flush block lengths
   unsigned long check;        // check value for input data
-  lock *calc;                 // released when check calculation complete
+  lock_t *calc;                 // released when check calculation complete
   job_t *next;           // next job in the list (either list)
 };
 
@@ -266,7 +266,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
 
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
-local void finish_jobs(queue_t job_queue) {
+void finish_jobs(job_queue_t job_queue) {
     struct job_t job;
     int caught;
 
