@@ -185,7 +185,7 @@ struct job_t
   space_t *out;               // dictionary or resulting compressed data
   space_t *lens;              // coded list of flush block lengths
   unsigned long check;        // check value for input data
-  lock *calc;                 // released when check calculation complete
+  lock_t *calc;                 // released when check calculation complete
   job_t *next;           // next job in the list (either list)
 };
 
@@ -288,7 +288,7 @@ local void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, poo
 
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
-local void finish_jobs(queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
+local void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
     struct job_t job;
     int caught;
 
