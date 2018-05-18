@@ -209,7 +209,7 @@ LIBRARIES = $(noinst_LIBRARIES)
 AM_V_AR = $(am__v_AR_$(V))
 am__v_AR_ = $(am__v_AR_$(AM_DEFAULT_VERBOSITY))
 am__v_AR_0 = @echo "  AR      " $@;
-am__v_AR_1 =
+am__v_AR_1 = 
 libver_a_AR = $(AR) $(ARFLAGS)
 libver_a_LIBADD =
 nodist_libver_a_OBJECTS = version.$(OBJEXT)
@@ -219,8 +219,9 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
 PROGRAMS = $(bin_PROGRAMS)
 am_gzip_OBJECTS = bits.$(OBJEXT) deflate.$(OBJEXT) gzip.$(OBJEXT) \
 	inflate.$(OBJEXT) lzw.$(OBJEXT) trees.$(OBJEXT) \
-	unlzh.$(OBJEXT) unlzw.$(OBJEXT) unpack.$(OBJEXT) \
-	unzip.$(OBJEXT) util.$(OBJEXT) utils.$(OBJEXT) zip.$(OBJEXT)
+	parallel.$(OBJEXT) unlzh.$(OBJEXT) unlzw.$(OBJEXT) \
+	unpack.$(OBJEXT) unzip.$(OBJEXT) util.$(OBJEXT) \
+	utils.$(OBJEXT) zip.$(OBJEXT)
 gzip_OBJECTS = $(am_gzip_OBJECTS)
 am__DEPENDENCIES_1 =
 gzip_DEPENDENCIES = libver.a lib/libgzip.a $(am__DEPENDENCIES_1)
@@ -259,11 +260,11 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 =
+am__v_GEN_1 = 
 AM_V_at = $(am__v_at_$(V))
 am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
 am__v_at_0 = @
-am__v_at_1 =
+am__v_at_1 = 
 DEFAULT_INCLUDES = -I. -I$(top_builddir)/lib
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -273,13 +274,13 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 AM_V_CC = $(am__v_CC_$(V))
 am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 =
+am__v_CC_1 = 
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_CCLD = $(am__v_CCLD_$(V))
 am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 =
+am__v_CCLD_1 = 
 SOURCES = $(nodist_libver_a_SOURCES) $(gzip_SOURCES)
 DIST_SOURCES = $(gzip_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
@@ -1501,7 +1502,7 @@ bin_SCRIPTS = gunzip gzexe zcat zcmp zdiff \
 
 gzip_SOURCES = \
   bits.c deflate.c gzip.c inflate.c lzw.c \
-  trees.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
+  trees.c parallel.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 
 gzip_LDADD = libver.a lib/libgzip.a -lz -lc $(LIB_CLOCK_GETTIME)
 SUFFIXES = .in
@@ -1560,7 +1561,7 @@ $(am__aclocal_m4_deps):
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 
-libver.a: $(libver_a_OBJECTS) $(libver_a_DEPENDENCIES) $(EXTRA_libver_a_DEPENDENCIES)
+libver.a: $(libver_a_OBJECTS) $(libver_a_DEPENDENCIES) $(EXTRA_libver_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libver.a
 	$(AM_V_AR)$(libver_a_AR) libver.a $(libver_a_OBJECTS) $(libver_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libver.a
@@ -1607,7 +1608,7 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-gzip$(EXEEXT): $(gzip_OBJECTS) $(gzip_DEPENDENCIES) $(EXTRA_gzip_DEPENDENCIES)
+gzip$(EXEEXT): $(gzip_OBJECTS) $(gzip_DEPENDENCIES) $(EXTRA_gzip_DEPENDENCIES) 
 	@rm -f gzip$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(gzip_OBJECTS) $(gzip_LDADD) $(LIBS)
 install-binSCRIPTS: $(bin_SCRIPTS)
@@ -1657,6 +1658,7 @@ include ./$(DEPDIR)/deflate.Po
 include ./$(DEPDIR)/gzip.Po
 include ./$(DEPDIR)/inflate.Po
 include ./$(DEPDIR)/lzw.Po
+include ./$(DEPDIR)/parallel.Po
 include ./$(DEPDIR)/trees.Po
 include ./$(DEPDIR)/unlzh.Po
 include ./$(DEPDIR)/unlzw.Po

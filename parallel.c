@@ -275,7 +275,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
 
 
 // Setup job lists (call from main thread).
-local void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, pool_t* lens_pool) {
+static void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, pool_t* lens_pool) {
     // initialize buffer pools (initial size for out_pool not critical, since
     // buffers will be grown in size if needed -- the initial size chosen to
     // make this unlikely, the same for lens_pool)
@@ -288,7 +288,7 @@ local void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, poo
 
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
-local void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
+static void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
     struct job_t job;
     int caught;
 

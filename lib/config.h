@@ -886,7 +886,7 @@
 #define HAVE_WORKING_O_NOATIME 0
 
 /* Define to 1 if O_NOFOLLOW works. */
-#define HAVE_WORKING_O_NOFOLLOW 0
+#define HAVE_WORKING_O_NOFOLLOW 1
 
 /* Define if utimes works properly. */
 #define HAVE_WORKING_UTIMES 1
