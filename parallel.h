@@ -3,13 +3,13 @@ struct lock_t;
 struct space_t;
 struct pool_t;
 struct job_t;
-struct job_queue_t
+struct job_queue_t;
 
 typedef struct lock_t lock_t;
 typedef struct space_t space_t;
 typedef struct pool_t pool_t;
 typedef struct job_t job_t;
-typedef struct job_queue_t;
+typedef struct job_queue_t job_queue_t;
 
 lock_t *new_lock(unsigned int users);
 void get_lock(lock_t* lock);
