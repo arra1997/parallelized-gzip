@@ -57,7 +57,7 @@ typedef struct space_t
   space_t *next;     // for pool linked list
 } space_t;
 
-static void new_space(space_t *space, unsigned int users, int size)
+void new_space(space_t *space, unsigned int users, int size)
 {
   space = Malloc(sizeof(space_t));
   space->use = new_lock(1);
@@ -79,7 +79,8 @@ typedef struct pool_t
   int users_per_space;
 } pool_t;
 
-static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space = 1) {
+void new_pool(pool_t *pool, size_t size, int limit, int users_per_space = 1) 
+{
   pool = Malloc(sizeof(pool_t));
   pool->have = new_lock(limit);
   pool->head = NULL;
@@ -90,7 +91,7 @@ static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space =
 }
 
 
-static space_t *get_space(pool_t *pool)
+space_t *get_space(pool_t *pool)
 {
   space_t *space;
   get_lock(pool->have);
@@ -118,7 +119,7 @@ static space_t *get_space(pool_t *pool)
 }
 
 
-static void drop_space(space_t* space)
+void drop_space(space_t* space)
 {
   if (space == NULL)
     return;
@@ -161,7 +162,8 @@ void free_pool(pool_t* pool)
 // Compress or write job (passed from compress list to write list). If seq is
 // equal to -1, compress_thread is instructed to return; if more is false then
 // this is the last chunk, which after writing tells write_thread to return.
-typedef struct job {
+typedef struct job_t 
+{
   long seq;                   // sequence number
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
@@ -170,5 +172,26 @@ typedef struct job {
   unsigned long check;        // check value for input data
   lock *calc;                 // released when check calculation complete
   struct job *next;           // next job in the list (either list)
-}job;
+} job_t;
+
+typedef struct job_queque_t 
+{
+  job_t *head;     // linked list of jobs
+  int len;         // length of job linked list
+  lock_t *use;
+} job_queque_t;
+
+void new_job_queque (job_queque_t *job_q)
+{
+
+}
+
+job_t* get_job_bgn (job_queque_t *job_q) //get a job from the beginning of the job queue
+{}
+
+void add_job_bgn (job_queque_t *job_q) //add a job to the beginning of the job queue
+{}
+
+void add_job_end (job_queue_t *job_q) //add a job to the end of the job queue
+{}
 
