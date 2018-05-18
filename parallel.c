@@ -174,30 +174,86 @@ typedef struct job_t
   struct job *next;           // next job in the list (either list)
 } job_t;
 
+void new_job (job_t *job, long seq, space_t *in, space_t *out, space_t *lens)
+{
+  job->seq = seq;
+  job->in = in;
+  job->out = out;
+  job->lens = lens;
+  job->check = 0;
+  job->calc = new_lock(1);
+  job->next = NULL;
+}
+
+void free_job (job_t *job)
+{
+  free_lock (job->calc);
+}
+
 typedef struct job_queque_t 
 {
   job_t *head;     // linked list of jobs
+  job_t *tail;
   int len;         // length of job linked list
   lock_t *use;
 } job_queque_t;
 
 void new_job_queque (job_queque_t *job_q)
 {
-
+  job_q->head = NULL;
+  job_q->tail = NULL;
+  job_q->len = 0;
+  job_q->use = new_lock(1);
 }
 
-job_t* get_job_bgn (job_queque_t *job_q) //get a job from the beginning of the job queue
+void free_job_queue (job_queque_t *job_q)// not thread safe 
 {
-
+  while (job_q->head != NULL)
+  {
+    job_t *temp = job_q->head;
+    job_q->head = job_q->head->next;
+    free_job (temp);
+  }
+  free_lock(job_q->use);
 }
 
-void add_job_bgn (job_queque_t *job_q) //add a job to the beginning of the job queue
+//get a job from the beginning of the job queue
+//the job should be freed if not put back to job queue after usage
+job_t *get_job_bgn (job_queque_t *job_q) 
 {
-
+  if (job_q->head == NULL)
+    return NULL;
+  job_t *ret = job_q->head;
+  job_q->head = job_q->head->next;
+  if (job_q->head == NULL)
+    job_q->tail = NULL;
+  ret->next = NULL;
+  return ret;
 }
 
-void add_job_end (job_queue_t *job_q) //add a job to the end of the job queue
+//add a job to the beginning of the job queue
+void add_job_bgn (job_queque_t *job_q, job_t *job) 
 {
-  
+  if (job_q->head == NULL)
+    job_q->tail = job;
+  job->next = job_q->head;
+  job_q->head = job;
+  return;
+}
+
+//add a job to the end of the job queue
+void add_job_end (job_queue_t *job_q, job_t *job) 
+{
+  if (job_q->tail == NULL)
+  {
+    job_q->head = job;
+    job_q->tail = job;
+    job->next = NULL;
+    return;
+  }
+  job_q->tail->next = job;
+  job_q->tail = job;
+  job->next = NULL;
+  return;
 }
 
