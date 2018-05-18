@@ -54,6 +54,7 @@ gzip_SOURCES = \
   bits.c deflate.c gzip.c inflate.c lzw.c \
   trees.c parallel.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 gzip_LDADD = libver.a lib/libgzip.a -lz -lc
+gzip_LDFLAGS = -pthread
 gzip_LDADD += $(LIB_CLOCK_GETTIME)
 
 BUILT_SOURCES += version.c

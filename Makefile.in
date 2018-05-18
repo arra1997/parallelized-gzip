@@ -225,6 +225,8 @@ am_gzip_OBJECTS = bits.$(OBJEXT) deflate.$(OBJEXT) gzip.$(OBJEXT) \
 gzip_OBJECTS = $(am_gzip_OBJECTS)
 am__DEPENDENCIES_1 =
 gzip_DEPENDENCIES = libver.a lib/libgzip.a $(am__DEPENDENCIES_1)
+gzip_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(gzip_LDFLAGS) $(LDFLAGS) \
+	-o $@
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -1505,6 +1507,7 @@ gzip_SOURCES = \
   trees.c parallel.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 
 gzip_LDADD = libver.a lib/libgzip.a -lz -lc $(LIB_CLOCK_GETTIME)
+gzip_LDFLAGS = -pthread
 SUFFIXES = .in
 gen_start_date = 2008-01-01
 
@@ -1610,7 +1613,7 @@ clean-binPROGRAMS:
 
 gzip$(EXEEXT): $(gzip_OBJECTS) $(gzip_DEPENDENCIES) $(EXTRA_gzip_DEPENDENCIES) 
 	@rm -f gzip$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(gzip_OBJECTS) $(gzip_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(gzip_LINK) $(gzip_OBJECTS) $(gzip_LDADD) $(LIBS)
 install-binSCRIPTS: $(bin_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_SCRIPTS)'; test -n "$(bindir)" || list=; \
