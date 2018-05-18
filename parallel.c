@@ -308,7 +308,7 @@ local void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_po
     // join all of the compress threads, verify they all came back
     caught = join_all();
     //Trace(("-- joined %d compress threads", caught));
-    assert(caught == cthreads);
+    assert(caught == g.cthreads);
     cthreads = 0;
 
     // free the resources
