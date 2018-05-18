@@ -1,20 +1,19 @@
 #include <pthread.h>
 #include <semaphore.h>
-#include "utils.h"
 #include <assert.h>
+#include "parallel.h"
+#include "utils.h"
 
 #define DICT 32768U
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
 
-
-
-typedef struct lock_t
+struct lock_t
 {
   sem_t *semaphore;
   unsigned int count;
-} lock_t;
+};
 
 lock_t *new_lock(unsigned int users)
 {
@@ -54,7 +53,7 @@ void free_lock(lock_t* lock)
 // knows what pool it belongs to, so that it can be returned.
 
 // A space (one buffer for each space).
-typedef struct space_t
+struct space_t
 {
   lock_t *use;            // return to pool when unused
   unsigned char *buf;     // buffer of size size
@@ -62,10 +61,11 @@ typedef struct space_t
   size_t len;             // for application usage (initially zero)
   pool_t *pool;      // pool to return to
   space_t *next;     // for pool linked list
-} space_t;
+};
 
-static void new_space(space_t *space, unsigned int users, int size)
+space_t *new_space(unsigned int users, int size)
 {
+  space_t *space;
   space = Malloc(sizeof(space_t));
   space->use = new_lock(1);
   space->buf = Calloc(size, sizeof(unsigned char));
@@ -76,7 +76,7 @@ static void new_space(space_t *space, unsigned int users, int size)
 }
 
 // Pool of spaces (one pool for each type needed).
-typedef struct pool_t
+struct pool_t
 {
   lock_t *have;           // unused spaces available, for list
   space_t *head;     // linked list of available buffers
@@ -84,9 +84,9 @@ typedef struct pool_t
   int limit;              // number of new spaces allowed, or -1
   int made;               // number of buffers made
   int users_per_space;
-} pool_t;
+};
 
-static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space = 1) {
+void new_pool(pool_t *pool, size_t size, int limit, int users_per_space) {
   pool = Malloc(sizeof(pool_t));
   pool->have = new_lock(limit);
   pool->head = NULL;
@@ -97,7 +97,7 @@ static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space =
 }
 
 
-static space_t *get_space(pool_t *pool)
+space_t *get_space(pool_t *pool)
 {
   space_t *space;
   get_lock(pool->have);
@@ -118,21 +118,21 @@ static space_t *get_space(pool_t *pool)
   if (pool->limit > 0)
     pool->limit--;
   pool->made++;
-  space = new_space(space, pool->users_per_space, pool->size);
+  space = new_space(pool->users_per_space, pool->size);
   space->pool = pool;
   free_lock(pool->have);
   return space;
 }
 
 
-static void drop_space(space_t* space)
+void drop_space(space_t* space)
 {
   if (space == NULL)
     return;
-  pool_t pool = space->pool;
+  pool_t *pool = space->pool;
   get_lock(pool->have);
-  free_lock(space->have);
-  if (is_free(space->have))
+  free_lock(space->use);
+  if (is_free(space->use))
     {
       space->next = pool->head;
       pool->head = space;
@@ -145,6 +145,7 @@ static void drop_space(space_t* space)
 void free_pool(pool_t* pool)
 {
   space_t *space;
+  int count;
   get_lock(pool->have);
   count = 0;
   if (pool->head == NULL)
@@ -167,7 +168,8 @@ void free_pool(pool_t* pool)
 // Compress or write job (passed from compress list to write list). If seq is
 // equal to -1, compress_thread is instructed to return; if more is false then
 // this is the last chunk, which after writing tells write_thread to return.
-typedef struct job_t {
+struct job_t
+{
   long seq;                   // sequence number
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
@@ -175,21 +177,92 @@ typedef struct job_t {
   space_t *lens;              // coded list of flush block lengths
   unsigned long check;        // check value for input data
   lock *calc;                 // released when check calculation complete
-  struct job *next;           // next job in the list (either list)
-}job_t;
+  job_t *next;           // next job in the list (either list)
+};
 
-// PIGZ: Setup job lists (call from main thread).
-// Setup pools
-local void setup_pools(pool_t in_pool, pool_t out_pool, pool_t dict_pool, pool_t lens_pool) {
-    // initialize buffer pools (initial size for out_pool not critical, since
-    // buffers will be grown in size if needed -- the initial size chosen to
-    // make this unlikely, the same for lens_pool)
-    new_pool(&in_pool, g.block, INBUFS(g.procs));
-    new_pool(&out_pool, OUTPOOL(g.block), -1);
-    new_pool(&dict_pool, DICT, -1);
-    new_pool(&lens_pool, g.block >> (RSYNCBITS - 1), -1);
+void new_job (job_t *job, long seq, space_t *in, space_t *out, space_t *lens)
+{
+  job->seq = seq;
+  job->in = in;
+  job->out = out;
+  job->lens = lens;
+  job->check = 0;
+  job->calc = new_lock(1);
+  job->next = NULL;
 }
 
+void free_job (job_t *job)
+{
+  free_lock (job->calc);
+}
+
+struct job_queue_t
+{
+  job_t *head;     // linked list of jobs
+  job_t *tail;
+  int len;         // length of job linked list
+  lock_t *use;
+};
+
+void new_job_queue (job_queue_t *job_q)
+{
+  job_q->head = NULL;
+  job_q->tail = NULL;
+  job_q->len = 0;
+  job_q->use = new_lock(1);
+}
+
+void free_job_queue (job_queue_t *job_q)// not thread safe
+{
+  while (job_q->head != NULL)
+  {
+    job_t *temp = job_q->head;
+    job_q->head = job_q->head->next;
+    free_job (temp);
+  }
+  free_lock(job_q->use);
+}
+
+
+//get a job from the beginning of the job queue
+//the job should be freed if not put back to job queue after usage
+job_t *get_job_bgn (job_queue_t *job_q)
+{
+  if (job_q->head == NULL)
+    return NULL;
+  job_t *ret = job_q->head;
+  job_q->head = job_q->head->next;
+  if (job_q->head == NULL)
+    job_q->tail = NULL;
+  ret->next = NULL;
+  return ret;
+}
+
+//add a job to the beginning of the job queue
+void add_job_bgn (job_queue_t *job_q, job_t *job)
+{
+  if (job_q->head == NULL)
+    job_q->tail = job;
+  job->next = job_q->head;
+  job_q->head = job;
+  return;
+}
+
+//add a job to the end of the job queue
+void add_job_end (job_queue_t *job_q, job_t *job)
+{
+  if (job_q->tail == NULL)
+  {
+    job_q->head = job;
+    job_q->tail = job;
+    job->next = NULL;
+    return;
+  }
+  job_q->tail->next = job;
+  job_q->tail = job;
+  job->next = NULL;
+  return;
+}
 
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
