@@ -9,6 +9,15 @@
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
 
+
+//TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
+struct {
+    int cthreads;
+    int procs;
+    int block;
+} g;
+
+
 struct lock_t
 {
   sem_t *semaphore;
@@ -264,9 +273,22 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   return;
 }
 
+
+// Setup job lists (call from main thread).
+local void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, pool_t* lens_pool) {
+    // initialize buffer pools (initial size for out_pool not critical, since
+    // buffers will be grown in size if needed -- the initial size chosen to
+    // make this unlikely, the same for lens_pool)
+    new_pool(in_pool, g.block, INBUFS(g.procs));
+    new_pool(out_pool, OUTPOOL(g.block), -1);
+    new_pool(dict_pool, DICT, -1);
+    new_pool(lens_pool, g.block >> (RSYNCBITS - 1), -1);
+}
+
+
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
-local void finish_jobs(queue_t job_queue) {
+local void finish_jobs(queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
     struct job_t job;
     int caught;
 
@@ -290,13 +312,13 @@ local void finish_jobs(queue_t job_queue) {
     cthreads = 0;
 
     // free the resources
-    caught = free_pool(&lens_pool);
+    caught = free_pool(lens_pool);
     //Trace(("-- freed %d block lengths buffers", caught));
-    caught = free_pool(&dict_pool);
+    caught = free_pool(dict_pool);
     //Trace(("-- freed %d dictionary buffers", caught));
-    caught = free_pool(&out_pool);
+    caught = free_pool(out_pool);
     //Trace(("-- freed %d output buffers", caught));
-    caught = free_pool(&in_pool);
+    caught = free_pool(in_pool);
     //Trace(("-- freed %d input buffers", caught));
     //free_lock(write_first);
     //free_lock(compress_have);
