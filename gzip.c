@@ -87,6 +87,8 @@ static char const *const license_msg[] = {
 #include <stdlib.h>
 #include <errno.h>
 
+#define INBUFS(p) (((p)<<1)+3)
+
 #ifndef NO_DIR
 # define NO_DIR 0
 #endif
@@ -194,6 +196,7 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
+       int threads;
 
 /* The original timestamp (modification time).  If the original is
    unknown, TIME_STAMP.tv_nsec is negative.  If the original is
@@ -267,7 +270,7 @@ enum
   ENV_OPTION
 };
 
-static char const shortopts[] = "ab:cdfhH?klLmMnNqrS:tvVZ123456789";
+static char const shortopts[] = "ab:cdfhH?klLmMnNpqrS:tvVZ123456789";
 
 static const struct option longopts[] =
 {
@@ -300,6 +303,7 @@ static const struct option longopts[] =
     {"lzw",        0, 0, 'Z'}, /* make output compatible with old compress */
     {"bits",       1, 0, 'b'}, /* max number of bits per code (implies -Z) */
     {"rsyncable",  0, 0, RSYNCABLE_OPTION}, /* make rsync-friendly archive */
+    {"processes",  1, 0, 'p'},
     { 0, 0, 0, 0 }
 };
 
@@ -382,6 +386,7 @@ local void help()
  "  -V, --version     display version number",
  "  -1, --fast        compress faster",
  "  -9, --best        compress better",
+ "  -p, --processes n    Allow up to n compression threads",
 #ifdef LZW
  "  -Z, --lzw         produce output compatible with old compress",
  "  -b, --bits=BITS   max number of bits per code (implies -Z)",
@@ -554,6 +559,13 @@ int main (int argc, char **argv)
             no_name = no_time = 0; break;
         case PRESUME_INPUT_TTY_OPTION:
             presume_input_tty = true; break;
+        case 'p':
+            threads = (int)*optarg;                   // # processes
+            if (threads < 1)
+                exit(EXIT_FAILURE);
+            if (INBUFS(threads) < 1)
+                exit(EXIT_FAILURE);
+            break;
         case 'q':
         case 'q' + ENV_OPTION:
             quiet = 1; verbose = 0; break;
