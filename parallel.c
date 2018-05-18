@@ -187,11 +187,17 @@ void new_job_queque (job_queque_t *job_q)
 }
 
 job_t* get_job_bgn (job_queque_t *job_q) //get a job from the beginning of the job queue
-{}
+{
+
+}
 
 void add_job_bgn (job_queque_t *job_q) //add a job to the beginning of the job queue
-{}
+{
+
+}
 
 void add_job_end (job_queue_t *job_q) //add a job to the end of the job queue
-{}
+{
+  
+}
 
