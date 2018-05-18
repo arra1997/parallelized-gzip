@@ -168,7 +168,7 @@ void free_pool(pool_t* pool)
 // Compress or write job (passed from compress list to write list). If seq is
 // equal to -1, compress_thread is instructed to return; if more is false then
 // this is the last chunk, which after writing tells write_thread to return.
-typedef struct job {
+typedef struct job_t {
   long seq;                   // sequence number
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
@@ -177,7 +177,7 @@ typedef struct job {
   unsigned long check;        // check value for input data
   lock *calc;                 // released when check calculation complete
   struct job *next;           // next job in the list (either list)
-}job;
+}job_t;
 
 // PIGZ: Setup job lists (call from main thread).
 // Setup pools
@@ -189,4 +189,51 @@ local void setup_pools(pool_t in_pool, pool_t out_pool, pool_t dict_pool, pool_t
     new_pool(&out_pool, OUTPOOL(g.block), -1);
     new_pool(&dict_pool, DICT, -1);
     new_pool(&lens_pool, g.block >> (RSYNCBITS - 1), -1);
+}
+
+
+// Command the compress threads to all return, then join them all (call from
+// main thread), free all the thread-related resources.
+local void finish_jobs(queue_t job_queue) {
+    struct job_t job;
+    int caught;
+
+    /*
+    TODO: MAKE THIS COMPATIBLE WITH JOB QUEUE
+    // only do this once
+    if (compress_have == NULL)
+        return;
+    */
+
+    /*
+    // command all of the extant compress threads to return
+    possess(compress_have);
+    job.seq = -1;
+    job.next = NULL;
+    compress_head = &job;
+    compress_tail = &(job.next);
+    twist(compress_have, BY, +1);       // will wake them all up
+    */
+    job.seq = -1;
+    job.next = NULL;
+    job_queue.insert_job(job);
+
+    // join all of the compress threads, verify they all came back
+    caught = join_all();
+    Trace(("-- joined %d compress threads", caught));
+    assert(caught == cthreads);
+    cthreads = 0;
+
+    // free the resources
+    caught = free_pool(&lens_pool);
+    Trace(("-- freed %d block lengths buffers", caught));
+    caught = free_pool(&dict_pool);
+    Trace(("-- freed %d dictionary buffers", caught));
+    caught = free_pool(&out_pool);
+    Trace(("-- freed %d output buffers", caught));
+    caught = free_pool(&in_pool);
+    Trace(("-- freed %d input buffers", caught));
+    free_lock(write_first);
+    free_lock(compress_have);
+    compress_have = NULL;
 }
