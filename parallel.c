@@ -3,6 +3,13 @@
 #include "utils.h"
 #include <assert.h>
 
+#define DICT 32768U
+#define INBUFS(p) (((p)<<1)+3)
+#define OUTPOOL(s) ((s)+((s)>>4)+DICT)
+#define RSYNCBITS 12
+
+
+
 typedef struct lock_t
 {
   sem_t *semaphore;
@@ -94,7 +101,7 @@ static space_t *get_space(pool_t *pool)
 {
   space_t *space;
   get_lock(pool->have);
-  
+
   // if a space is available, pull it from the free list and return it
   if (pool->head != NULL)
     {
@@ -151,11 +158,11 @@ void free_pool(pool_t* pool)
       pool->head = space->next;
       free(space->buf);
       free(space);
-      pool->made--;      
+      pool->made--;
     } while (pool->head != NULL);
   free_lock(pool->have);
 }
-  
+
 // -- job queue used for parallel compression --
 
 // Compress or write job (passed from compress list to write list). If seq is
@@ -172,3 +179,14 @@ typedef struct job {
   struct job *next;           // next job in the list (either list)
 }job;
 
+// PIGZ: Setup job lists (call from main thread).
+// Setup pools
+local void setup_pools(pool_t in_pool, pool_t out_pool, pool_t dict_pool, pool_t lens_pool) {
+    // initialize buffer pools (initial size for out_pool not critical, since
+    // buffers will be grown in size if needed -- the initial size chosen to
+    // make this unlikely, the same for lens_pool)
+    new_pool(&in_pool, g.block, INBUFS(g.procs));
+    new_pool(&out_pool, OUTPOOL(g.block), -1);
+    new_pool(&dict_pool, DICT, -1);
+    new_pool(&lens_pool, g.block >> (RSYNCBITS - 1), -1);
+}
