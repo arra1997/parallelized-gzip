@@ -1474,7 +1474,7 @@ ALL_RECURSIVE_TARGETS = distcheck-hook
 BUILT_SOURCES = version.c version.h
 SUBDIRS = lib doc . tests
 AM_CPPFLAGS = -I$(top_srcdir)/lib
-AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
+AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS) -Wno-unused-function
 
 # Tell the linker to omit references to unused shared libraries.
 AM_LDFLAGS = $(IGNORE_UNUSED_LIBRARIES_CFLAGS)

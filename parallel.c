@@ -82,6 +82,7 @@ space_t *new_space(unsigned int users, int size)
   space->len = 0;
   space->pool = NULL;
   space->next = NULL;
+  return space;
 }
 
 // Pool of spaces (one pool for each type needed).
@@ -154,9 +155,8 @@ void drop_space(space_t* space)
 void free_pool(pool_t* pool)
 {
   space_t *space;
-  int count;
+  //int count = 0;
   get_lock(pool->have);
-  count = 0;
   if (pool->head == NULL)
     {
       free_lock(pool->have);
@@ -279,18 +279,17 @@ static void setup_pools(pool_t* in_pool, pool_t* out_pool, pool_t* dict_pool, po
     // initialize buffer pools (initial size for out_pool not critical, since
     // buffers will be grown in size if needed -- the initial size chosen to
     // make this unlikely, the same for lens_pool)
-    new_pool(in_pool, g.block, INBUFS(g.procs));
-    new_pool(out_pool, OUTPOOL(g.block), -1);
-    new_pool(dict_pool, DICT, -1);
-    new_pool(lens_pool, g.block >> (RSYNCBITS - 1), -1);
+    new_pool(in_pool, g.block, INBUFS(g.procs), 1);
+    new_pool(out_pool, OUTPOOL(g.block), -1, 1);
+    new_pool(dict_pool, DICT, -1, 1);
+    new_pool(lens_pool, g.block >> (RSYNCBITS - 1), -1, 1);
 }
 
 
 // Command the compress threads to all return, then join them all (call from
 // main thread), free all the thread-related resources.
-static void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
+static void finish_jobs(job_queue_t* job_queue, pool_t* lens_pool, pool_t* dict_pool, pool_t* out_pool, pool_t* in_pool) {
     struct job_t job;
-    int caught;
 
     /*
     // command all of the extant compress threads to return
@@ -303,22 +302,23 @@ static void finish_jobs(jon_queue_t job_queue, pool_t* lens_pool, pool_t* dict_p
     */
     job.seq = -1;
     job.next = NULL;
-    job_queue.add_job_bgn(job);
+    add_job_bgn(job_queue, &job);
 
     // join all of the compress threads, verify they all came back
-    caught = join_all();
+    //TODO ADD join_all() function and then uncomment this line
+    //join_all();
     //Trace(("-- joined %d compress threads", caught));
-    assert(caught == g.cthreads);
-    cthreads = 0;
+    //assert(caught == g.cthreads);
+    g.cthreads = 0;
 
     // free the resources
-    caught = free_pool(lens_pool);
+    free_pool(lens_pool);
     //Trace(("-- freed %d block lengths buffers", caught));
-    caught = free_pool(dict_pool);
+    free_pool(dict_pool);
     //Trace(("-- freed %d dictionary buffers", caught));
-    caught = free_pool(out_pool);
+    free_pool(out_pool);
     //Trace(("-- freed %d output buffers", caught));
-    caught = free_pool(in_pool);
+    free_pool(in_pool);
     //Trace(("-- freed %d input buffers", caught));
     //free_lock(write_first);
     //free_lock(compress_have);
