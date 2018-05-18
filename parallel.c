@@ -271,13 +271,6 @@ local void finish_jobs(queue_t job_queue) {
     int caught;
 
     /*
-    TODO: MAKE THIS COMPATIBLE WITH JOB QUEUE
-    // only do this once
-    if (compress_have == NULL)
-        return;
-    */
-
-    /*
     // command all of the extant compress threads to return
     possess(compress_have);
     job.seq = -1;
@@ -288,24 +281,26 @@ local void finish_jobs(queue_t job_queue) {
     */
     job.seq = -1;
     job.next = NULL;
-    job_queue.insert_job(job);
+    job_queue.add_job_bgn(job);
 
     // join all of the compress threads, verify they all came back
     caught = join_all();
-    Trace(("-- joined %d compress threads", caught));
+    //Trace(("-- joined %d compress threads", caught));
     assert(caught == cthreads);
     cthreads = 0;
 
     // free the resources
     caught = free_pool(&lens_pool);
-    Trace(("-- freed %d block lengths buffers", caught));
+    //Trace(("-- freed %d block lengths buffers", caught));
     caught = free_pool(&dict_pool);
-    Trace(("-- freed %d dictionary buffers", caught));
+    //Trace(("-- freed %d dictionary buffers", caught));
     caught = free_pool(&out_pool);
-    Trace(("-- freed %d output buffers", caught));
+    //Trace(("-- freed %d output buffers", caught));
     caught = free_pool(&in_pool);
-    Trace(("-- freed %d input buffers", caught));
-    free_lock(write_first);
-    free_lock(compress_have);
-    compress_have = NULL;
+    //Trace(("-- freed %d input buffers", caught));
+    //free_lock(write_first);
+    //free_lock(compress_have);
+    //compress_have = NULL;
+
+    free_job_queue(job_queue);
 }
