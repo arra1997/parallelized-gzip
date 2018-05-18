@@ -3,6 +3,11 @@
 #include "utils.h"
 #include <assert.h>
 
+struct space_t;
+struct pool_t;
+typedef struct space_t space_t;
+typedef struct pool_t pool_t;
+
 typedef struct lock_t
 {
   sem_t *semaphore;
@@ -47,7 +52,7 @@ void free_lock(lock_t* lock)
 // knows what pool it belongs to, so that it can be returned.
 
 // A space (one buffer for each space).
-typedef struct space_t
+struct space_t
 {
   lock_t *use;            // return to pool when unused
   unsigned char *buf;     // buffer of size size
@@ -55,10 +60,11 @@ typedef struct space_t
   size_t len;             // for application usage (initially zero)
   pool_t *pool;      // pool to return to
   space_t *next;     // for pool linked list
-} space_t;
+};
 
-static void new_space(space_t *space, unsigned int users, int size)
+space_t *new_space(unsigned int users, int size)
 {
+  space_t *space;
   space = Malloc(sizeof(space_t));
   space->use = new_lock(1);
   space->buf = Calloc(size, sizeof(unsigned char));
@@ -69,7 +75,7 @@ static void new_space(space_t *space, unsigned int users, int size)
 }
 
 // Pool of spaces (one pool for each type needed).
-typedef struct pool_t
+struct pool_t
 {
   lock_t *have;           // unused spaces available, for list
   space_t *head;     // linked list of available buffers
@@ -77,9 +83,9 @@ typedef struct pool_t
   int limit;              // number of new spaces allowed, or -1
   int made;               // number of buffers made
   int users_per_space;
-} pool_t;
+};
 
-static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space = 1) {
+static void new_pool(pool_t *pool, size_t size, int limit, int users_per_space) {
   pool = Malloc(sizeof(pool_t));
   pool->have = new_lock(limit);
   pool->head = NULL;
@@ -111,7 +117,7 @@ static space_t *get_space(pool_t *pool)
   if (pool->limit > 0)
     pool->limit--;
   pool->made++;
-  space = new_space(space, pool->users_per_space, pool->size);
+  space = new_space(pool->users_per_space, pool->size);
   space->pool = pool;
   free_lock(pool->have);
   return space;
@@ -122,10 +128,10 @@ static void drop_space(space_t* space)
 {
   if (space == NULL)
     return;
-  pool_t pool = space->pool;
+  pool_t *pool = space->pool;
   get_lock(pool->have);
-  free_lock(space->have);
-  if (is_free(space->have))
+  free_lock(space->use);
+  if (is_free(space->use))
     {
       space->next = pool->head;
       pool->head = space;
@@ -138,6 +144,7 @@ static void drop_space(space_t* space)
 void free_pool(pool_t* pool)
 {
   space_t *space;
+  int count;
   get_lock(pool->have);
   count = 0;
   if (pool->head == NULL)
@@ -161,14 +168,14 @@ void free_pool(pool_t* pool)
 // Compress or write job (passed from compress list to write list). If seq is
 // equal to -1, compress_thread is instructed to return; if more is false then
 // this is the last chunk, which after writing tells write_thread to return.
-typedef struct job {
+typedef struct job_t {
   long seq;                   // sequence number
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
   space_t *lens;              // coded list of flush block lengths
   unsigned long check;        // check value for input data
-  lock *calc;                 // released when check calculation complete
+  lock_t *calc;                 // released when check calculation complete
   struct job *next;           // next job in the list (either list)
-}job;
+}job_t;
 
