@@ -162,7 +162,6 @@ void free_pool(pool_t* pool)
     } while (pool->head != NULL);
   free_lock(pool->have);
 }
-
 // -- job queue used for parallel compression --
 
 // Compress or write job (passed from compress list to write list). If seq is
