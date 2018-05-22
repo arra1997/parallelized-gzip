@@ -1504,7 +1504,7 @@ bin_SCRIPTS = gunzip gzexe zcat zcmp zdiff \
 
 gzip_SOURCES = \
   bits.c deflate.c gzip.c inflate.c lzw.c \
-  trees.c parallel.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
+  trees.c try.c parallel.c unlzh.c unlzw.c unpack.c unzip.c util.c utils.c zip.c
 
 gzip_LDADD = libver.a lib/libgzip.a -lz -lc $(LIB_CLOCK_GETTIME)
 gzip_LDFLAGS = -pthread

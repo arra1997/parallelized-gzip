@@ -1,10 +1,12 @@
 #include <config.h>
+#include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <zlib.h>
 #include "parallel.h"
 #include "utils.h"
+#include "try.h"
 
 
 // Sliding dictionary size for deflate.
@@ -15,6 +17,38 @@
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
+#define OPAQUE Z_NULL
+#define ZALLOC Z_NULL
+#define ZFREE Z_NULL
+
+long zlib_vernum(void) {
+    char const *ver = zlibVersion();
+    long num = 0;
+    int left = 4;
+    int comp = 0;
+    do {
+        if (*ver >= '0' && *ver <= '9')
+            comp = 10 * comp + *ver - '0';
+        else {
+            num = (num << 4) + (comp > 0xf ? 0xf : comp);
+            left--;
+            if (*ver != '.')
+                break;
+            comp = 0;
+        }
+        ver++;
+    } while (left);
+    return left < 2 ? num << (left << 2) : -1;
+}
+
+
+// Assured memory allocation.
+void *alloc(void *ptr, size_t size) {
+    ptr = realloc(ptr, size);
+    if (ptr == NULL)
+        throw(ENOMEM, (char *) "not enough memory");
+    return ptr;
+}
 
 
 //TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
@@ -157,6 +191,42 @@ void drop_space(space_t* space)
     }
   free_lock(pool->have);
 }
+
+// Compute next size up by multiplying by about 2**(1/3) and rounding to the
+// next power of 2 if close (three applications results in doubling). If small,
+// go up to at least 16, if overflow, go to max size_t value.
+size_t grow(size_t size) {
+    size_t was, top;
+    int shift;
+
+    was = size;
+    size += size >> 2;
+    top = size;
+    for (shift = 0; top > 7; shift++)
+        top >>= 1;
+    if (top == 7)
+        size = (size_t)1 << (shift + 3);
+    if (size < 16)
+        size = 16;
+    if (size <= was)
+        size = (size_t)0 - 1;
+    return size;
+}
+
+// Increase the size of the buffer in space.
+void grow_space(space_t *space) {
+    size_t more;
+
+    // compute next size up
+    more = grow(space->size);
+    if (more == space->size)
+        throw(ERANGE, (char *) "overflow");
+
+    // reallocate the buffer
+    space->buf = alloc(space->buf, more);
+    space->size = more;
+}
+
 
 // Free the memory resources of a pool (unused buffers)
 void free_pool(pool_t* pool)
@@ -334,13 +404,34 @@ static void finish_jobs(job_queue_t* job_queue, pool_t* lens_pool, pool_t* dict_
     free_job_queue(job_queue);
 }
 
+// Compress all strm->avail_in bytes at strm->next_in to out->buf, updating
+// out->len, grow the size of the buffer (out->size) if necessary. Respect the
+// size limitations of the zlib stream data types (size_t may be larger than
+// unsigned).
+void deflate_engine(z_stream *strm, space_t *out, int flush) {
+    size_t room;
+
+    do {
+        room = out->size - out->len;
+        if (room == 0) {
+            grow_space(out);
+            room = out->size - out->len;
+        }
+        strm->next_out = out->buf + out->len;
+        strm->avail_out = room < UINT_MAX ? (unsigned)room : UINT_MAX;
+        (void)deflate(strm, flush);
+        out->len = (size_t)(strm->next_out - out->buf);
+    } while (strm->avail_out == 0);
+    assert(strm->avail_in == 0);
+}
+
 typedef struct compress_options
 {
   job_queue_t *job_queue;
   pool_t* out_pool;
   int level;
+  int setdict;
 }compress_options;
-
 
 // Get the next compression job from the head of the list, compress and compute
 // the check value on the input, and put a job in the write list with the
@@ -367,18 +458,19 @@ void* compress_thread(void *(options)) {
     compress_options* opts = (compress_options*) options;
     pool_t *out_pool = opts->out_pool;
     int level = opts->level;
+    int setdict = opts->setdict;
     job_queue_t *job_queue = opts->job_queue;
 
-    try {
+     try {
         // initialize the deflate stream for this thread
         strm.zfree = ZFREE;
         strm.zalloc = ZALLOC;
         strm.opaque = OPAQUE;
         ret = deflateInit2(&strm, 6, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
         if (ret == Z_MEM_ERROR)
-            throw(ENOMEM, "not enough memory");
+            throw(ENOMEM, (char *) "not enough memory");
         if (ret != Z_OK)
-            throw(EINVAL, "internal error");
+            throw(EINVAL, (char *) "internal error");
 
 
 //THIS IS WHERE I STOPPED SHUHAO **************************************************
@@ -402,7 +494,7 @@ void* compress_thread(void *(options)) {
             }
             else {
               if (temp == NULL)
-                temp = get_space(&out_pool);
+                temp = get_space(out_pool);
               temp->len = 0;
             }
 
@@ -420,12 +512,11 @@ void* compress_thread(void *(options)) {
                     memcpy(temp->buf, job->out->buf + (len - left), left);
                     temp->len = left;
                 }
-                /******** STOPPED HERE - Zach *******/
                 drop_space(job->out);
             }
 
             // set up input and output
-            job->out = get_space(&out_pool);
+            job->out = get_space(out_pool);
             if (level <= 9) {
               strm.next_in = job->in->buf;
               strm.next_out = job->out->buf;
@@ -458,7 +549,7 @@ void* compress_thread(void *(options)) {
                 }
                 left -= len;
 
-                if (g.level <= 9) {
+                if (level <= 9) {
                     // run MAXP2-sized amounts of input through deflate -- this
                     // loop is needed for those cases where the unsigned type
                     // is smaller than the size_t type, or when len is close to
@@ -481,7 +572,7 @@ void* compress_thread(void *(options)) {
                             // add enough empty blocks to get to a byte
                             // boundary
                             (void)deflatePending(&strm, Z_NULL, &bits);
-                            if ((bits & 1) || !g.setdict)
+                            if ((bits & 1) || !setdict)
                                 deflate_engine(&strm, job->out, Z_SYNC_FLUSH);
                             else if (bits & 7) {
                                 do {        // add static empty blocks
@@ -497,7 +588,7 @@ void* compress_thread(void *(options)) {
                         {
                             deflate_engine(&strm, job->out, Z_SYNC_FLUSH);
                         }
-                        if (!g.setdict)     // two markers when independent
+                        if (!setdict)     // two markers when independent
                             deflate_engine(&strm, job->out, Z_FULL_FLUSH);
                     }
                     else
@@ -506,9 +597,9 @@ void* compress_thread(void *(options)) {
             } while (left);
             drop_space(job->lens);
             job->lens = NULL;
-            Trace(("-- compressed #%ld%s", job->seq,
-                   job->more ? "" : " (last)"));
-
+            //Trace(("-- compressed #%ld%s", job->seq,
+                   //job->more ? "" : " (last)"));
+            /****** STOPPED HERE -- ZACH ************/
             // reserve input buffer until check value has been calculated
             use_space(job->in);
 
@@ -538,7 +629,7 @@ void* compress_thread(void *(options)) {
             check = CHECK(check, next, (unsigned)len);
             drop_space(job->in);
             job->check = check;
-            Trace(("-- checked #%ld%s", job->seq, job->more ? "" : " (last)"));
+            //Trace(("-- checked #%ld%s", job->seq, job->more ? "" : " (last)"));
             possess(job->calc);
             twist(job->calc, TO, 1);
 
@@ -551,8 +642,10 @@ void* compress_thread(void *(options)) {
 #endif
         release(compress_have);
         (void)deflateEnd(&strm);
-    }
+    } 
     catch (err) {
-        THREADABORT(err);
+        //THREADABORT(err);
+        //throw("")
+      return 1 
     }
 }
