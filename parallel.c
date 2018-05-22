@@ -9,6 +9,9 @@
 
 // Sliding dictionary size for deflate.
 #define DICT 32768U
+// Largest power of 2 that fits in an unsigned int. Used to limit requests to
+// zlib functions that use unsigned int lengths.
+#define MAXP2 (UINT_MAX - (UINT_MAX >> 1))
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
@@ -333,7 +336,7 @@ static void finish_jobs(job_queue_t* job_queue, pool_t* lens_pool, pool_t* dict_
 
 typedef struct compress_options
 {
-  job_t *job_queue;
+  job_queue_t *job_queue;
   pool_t* out_pool;
   int level;
 }compress_options;
@@ -364,7 +367,7 @@ void* compress_thread(void *(options)) {
     compress_options* opts = (compress_options*) options;
     pool_t *out_pool = opts->out_pool;
     int level = opts->level;
-    job_t *job_queue = opts->job_queue;
+    job_queue_t *job_queue = opts->job_queue;
 
     try {
         // initialize the deflate stream for this thread
@@ -423,16 +426,13 @@ void* compress_thread(void *(options)) {
 
             // set up input and output
             job->out = get_space(&out_pool);
-#ifndef NOZOPFLI
             if (level <= 9) {
-#endif
-                strm.next_in = job->in->buf;
-                strm.next_out = job->out->buf;
-#ifndef NOZOPFLI
+              strm.next_in = job->in->buf;
+              strm.next_out = job->out->buf;
             }
-            else
-                memcpy(temp->buf + temp->len, job->in->buf, job->in->len);
-#endif
+            else {
+              memcpy(temp->buf + temp->len, job->in->buf, job->in->len);
+            }
 
             // compress each block, either flushing or finishing
             next = job->lens == NULL ? NULL : job->lens->buf;
@@ -458,9 +458,7 @@ void* compress_thread(void *(options)) {
                 }
                 left -= len;
 
-#ifndef NOZOPFLI
                 if (g.level <= 9) {
-#endif
                     // run MAXP2-sized amounts of input through deflate -- this
                     // loop is needed for those cases where the unsigned type
                     // is smaller than the size_t type, or when len is close to
@@ -504,51 +502,7 @@ void* compress_thread(void *(options)) {
                     }
                     else
                         deflate_engine(&strm, job->out, Z_FINISH);
-#ifndef NOZOPFLI
                 }
-                else {
-                    // compress len bytes using zopfli, end at byte boundary
-                    unsigned char bits, *out;
-                    size_t outsize;
-
-                    out = NULL;
-                    outsize = 0;
-                    bits = 0;
-                    ZopfliDeflatePart(&g.zopts, 2, !(left || job->more),
-                                      temp->buf, temp->len, temp->len + len,
-                                      &bits, &out, &outsize);
-                    assert(job->out->len + outsize + 5 <= job->out->size);
-                    memcpy(job->out->buf + job->out->len, out, outsize);
-                    free(out);
-                    job->out->len += outsize;
-                    if (left || job->more) {
-                        bits &= 7;
-                        if ((bits & 1) || !g.setdict) {
-                            if (bits == 0 || bits > 5)
-                                job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0xff;
-                            job->out->buf[job->out->len++] = 0xff;
-                        }
-                        else if (bits) {
-                            do {
-                                job->out->buf[job->out->len - 1] += 2 << bits;
-                                job->out->buf[job->out->len++] = 0;
-                                bits += 2;
-                            } while (bits < 8);
-                        }
-                        if (!g.setdict) {   // two markers when independent
-                            job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0;
-                            job->out->buf[job->out->len++] = 0xff;
-                            job->out->buf[job->out->len++] = 0xff;
-                        }
-                    }
-                    temp->len += len;
-                }
-#endif
             } while (left);
             drop_space(job->lens);
             job->lens = NULL;
