@@ -1,9 +1,13 @@
+#include <config.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <assert.h>
+#include <zlib.h>
 #include "parallel.h"
 #include "utils.h"
 
+
+// Sliding dictionary size for deflate.
 #define DICT 32768U
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
@@ -327,13 +331,20 @@ static void finish_jobs(job_queue_t* job_queue, pool_t* lens_pool, pool_t* dict_
     free_job_queue(job_queue);
 }
 
+typedef struct compress_options
+{
+  job_t *job_queue;
+  pool_t* out_pool;
+  int level;
+}compress_options;
+
 
 // Get the next compression job from the head of the list, compress and compute
 // the check value on the input, and put a job in the write list with the
 // results. Keep looking for more jobs, returning when a job is found with a
 // sequence number of -1 (leave that job in the list for other incarnations to
 // find).
-local void compress_thread(void *dummy) {
+void* compress_thread(void *(options)) {
     struct job_t *job;                // job pulled and working on
     struct job_t *here, **prior;      // pointers for inserting in write list
     unsigned long check;            // check value of input
@@ -343,14 +354,17 @@ local void compress_thread(void *dummy) {
 #if ZLIB_VERNUM >= 0x1260
     int bits;                       // deflate pending bits
 #endif
-#ifndef NOZOPFLI
     struct space_t *temp = NULL;      // temporary space for zopfli input
-#endif
     int ret;                        // zlib return code
     z_stream strm;                  // deflate stream
     //ball_t err;                     // error information from throw()
 
-    (void)dummy;
+
+
+    compress_options* opts = (compress_options*) options;
+    pool_t *out_pool = opts->out_pool;
+    int level = opts->level;
+    job_t *job_queue = opts->job_queue;
 
     try {
         // initialize the deflate stream for this thread
@@ -370,34 +384,25 @@ local void compress_thread(void *dummy) {
         // keep looking for work
         for (;;) {
             // get a job (like I tell my son)
-            possess(compress_have);
-            wait_for(compress_have, NOT_TO_BE, 0);
-            job = compress_head;
+            job = get_job_bgn(job_queue);
             assert(job != NULL);
             if (job->seq == -1)
                 break;
-            compress_head = job->next;
-            if (job->next == NULL)
-                compress_tail = &compress_head;
-            twist(compress_have, BY, -1);
 
             // got a job -- initialize and set the compression level (note that
             // if deflateParams() is called immediately after deflateReset(),
             // there is no need to initialize input/output for the stream)
-            Trace(("-- compressing #%ld", job->seq));
-#ifndef NOZOPFLI
-            if (g.level <= 9) {
-#endif
-                (void)deflateReset(&strm);
-                (void)deflateParams(&strm, g.level, Z_DEFAULT_STRATEGY);
-#ifndef NOZOPFLI
+            // Trace(("-- compressing #%ld", job->seq)); TODO: LOG
+            if (level <= 9) {
+              (void)deflateReset(&strm);
+              (void)deflateParams(&strm, level, Z_DEFAULT_STRATEGY);
             }
             else {
-                if (temp == NULL)
-                    temp = get_space(&out_pool);
-                temp->len = 0;
+              if (temp == NULL)
+                temp = get_space(&out_pool);
+              temp->len = 0;
             }
-#endif
+
 
             // set dictionary if provided, release that input or dictionary
             // buffer (not NULL if g.setdict is true and if this is not the
@@ -405,24 +410,21 @@ local void compress_thread(void *dummy) {
             if (job->out != NULL) {
                 len = job->out->len;
                 left = len < DICT ? len : DICT;
-#ifndef NOZOPFLI
-                if (g.level <= 9)
-#endif
+                if (level <= 9)
                     deflateSetDictionary(&strm, job->out->buf + (len - left),
                                          (unsigned)left);
-#ifndef NOZOPFLI
                 else {
                     memcpy(temp->buf, job->out->buf + (len - left), left);
                     temp->len = left;
                 }
-#endif
+                /******** STOPPED HERE - Zach *******/
                 drop_space(job->out);
             }
 
             // set up input and output
             job->out = get_space(&out_pool);
 #ifndef NOZOPFLI
-            if (g.level <= 9) {
+            if (level <= 9) {
 #endif
                 strm.next_in = job->in->buf;
                 strm.next_out = job->out->buf;
