@@ -4,12 +4,14 @@ struct space_t;
 struct pool_t;
 struct job_t;
 struct job_queue_t;
+struct compress_options;
 
 typedef struct lock_t lock_t;
 typedef struct space_t space_t;
 typedef struct pool_t pool_t;
 typedef struct job_t job_t;
 typedef struct job_queue_t job_queue_t;
+typedef struct compress_options compress_options;
 
 lock_t *new_lock(unsigned int users);
 void get_lock(lock_t* lock);
@@ -30,3 +32,5 @@ void free_job_queue (job_queue_t *job_q); // not thread safe
 job_t *get_job_bgn (job_queue_t *job_q);
 void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
+
+void compress_thread(void *dummy);

@@ -10,11 +10,12 @@
 
 // Sliding dictionary size for deflate.
 #define DICT 32768U
+// Largest power of 2 that fits in an unsigned int. Used to limit requests to
+// zlib functions that use unsigned int lengths.
+// #define MAXP2 (UINT_MAX - (UINT_MAX >> 1))
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
-
-
 
 //TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
 struct {
@@ -331,5 +332,143 @@ static void finish_jobs(job_queue_t* job_queue, pool_t* lens_pool, pool_t* dict_
     //compress_have = NULL;
 
     free_job_queue(job_queue);
+}
+
+#ifndef WINDOW_BITS
+#  define WINDOW_BITS 15
+#endif
+
+#ifndef GZIP_ENCODING
+#  define GZIP_ENCODING 16
+#endif
+
+
+struct compress_options {
+  job_queue_t *job_queue;
+  pool_t *out_pool;
+  int level;
+  gz_header *header;
+};
+
+// Get the next compression job from the head of the list, compress and compute
+// the check value on the input, and put a job in the write list with the
+// results. Keep looking for more jobs, returning when a job is found with a
+// sequence number of -1 (leave that job in the list for other incarnations to
+// find).
+void compress_thread(void *(opts)) {
+  struct job_t *job;              // job pulled and working on
+  unsigned char *next;            // pointer for blocks, check value data
+  size_t left;                    // input left to process
+  size_t len;                     // remaining bytes to compress/check
+  int ret;                        // for error checking purposes
+
+  compress_options* options = (compress_options *) opts;
+  job_queue_t *job_queue = options->job_queue;
+  pool_t *out_pool = options->out_pool;
+  int level = options->level;
+  gz_header *header = options->header;
+
+  // Initialize the deflate stream
+  z_stream strm;
+  strm.zalloc = Z_NULL;
+  strm.zfree  = Z_NULL;
+  strm.opaque = Z_NULL;
+  ret = deflateInit2 (&strm, level, Z_DEFLATED,
+                          WINDOW_BITS | GZIP_ENCODING, 8,
+                          Z_DEFAULT_STRATEGY);
+  if (ret != Z_OK)
+    exit (EXIT_FAILURE);
+
+  ret = deflateSetHeader (&strm, header);
+  if (ret != Z_OK)
+    exit(EXIT_FAILURE);
+
+  // Continuously look for jobs
+  for (;;) {
+    // Get a job
+    job = get_job_bgn(job_queue);
+    assert(job != NULL);
+    if (job->seq == -1)
+      break;
+
+    // Initialize and set compression level.
+    (void)deflateReset(&strm);
+    (void)deflateParams(&strm, level, Z_DEFAULT_STRATEGY);
+
+    // Set dictionary if provided
+    if (job->out != NULL) {
+      len = job->out->len;
+      left = len < DICT ? len : DICT;
+      deflateSetDictionary(&strm, job->out->buf + (len - left), (unsigned)left);
+      drop_space(job->out);
+    }
+
+    // Set up I/O
+    job->out = get_space(out_pool);
+    strm.next_in = job->in->buf;
+    strm.next_out = job->out->buf;
+
+    // Compress each block, either flushing or finishing.
+    next = job->lens == NULL ? NULL : job->lens->buf;
+    left = job->in->len;
+    job->out->len = 0;
+
+    do {
+      // decode next block length from blocks list
+      len = next == NULL ? 128 : *next++;
+      if (len < 128)                  // 64..32831
+          len = (len << 8) + (*next++) + 64;
+      else if (len == 128)            // end of list
+          len = left;
+      else if (len < 192)             // 1..63
+          len &= 0x3f;
+      else if (len < 224){            // 32832..2129983
+          len = ((len & 0x1f) << 16) + ((size_t)*next++ << 8);
+          len += *next++ + 32832U;
+      }
+      else {                          // 2129984..539000895
+          len = ((len & 0x1f) << 24) + ((size_t)*next++ << 16);
+          len += (size_t)*next++ << 8;
+          len += (size_t)*next++ + 2129984UL;
+      }
+      left -= len;
+
+
+      // ********** TODO **************
+      // run MAXP2-sized amounts of input through deflate -- this
+      // loop is needed for those cases where the unsigned type
+      // is smaller than the size_t type, or when len is close to
+      // the limit of the size_t type
+
+      // ********** TODO **************
+      // run the last piece through deflate -- end on a byte
+      // boundary, using a sync marker if necessary, or finish
+      // the deflate stream if this is the last block
+
+
+    } while(left);
+
+    drop_space(job->lens);
+    job->lens = NULL;
+
+    // ********** TODO ************** - Implement use_space
+    // reserve input buffer until check value has been calculated.
+    // use_space(job->in);
+
+    // ********** TODO **************
+    // insert write job in list in sorted order, alert write thread
+
+    // ********** TODO **************
+    // calculate the check value in parallel with writing, alert the
+    // write thread that the calculation is complete, and drop this
+    // usage of the input buffer
+
+    // done with that one -- go find another job
+
+  }
+
+  // found job with seq == -1 -- return to join
+  (void)deflateEnd(&strm);
+  return;
 }
 
