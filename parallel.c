@@ -10,24 +10,10 @@
 
 // Sliding dictionary size for deflate.
 #define DICT 32768U
-// Largest power of 2 that fits in an unsigned int. Used to limit requests to
-// zlib functions that use unsigned int lengths.
-#define MAXP2 (UINT_MAX - (UINT_MAX >> 1))
 #define INBUFS(p) (((p)<<1)+3)
 #define OUTPOOL(s) ((s)+((s)>>4)+DICT)
 #define RSYNCBITS 12
-#define OPAQUE Z_NULL
-#define ZALLOC Z_NULL
-#define ZFREE Z_NULL
 
-
-// Assured memory allocation.
-void *alloc(void *ptr, size_t size) {
-    ptr = realloc(ptr, size);
-    if (ptr == NULL)
-        throw(ENOMEM, (char *) "not enough memory");
-    return ptr;
-}
 
 
 //TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
@@ -170,42 +156,6 @@ void drop_space(space_t* space)
     }
   free_lock(pool->have);
 }
-
-// Compute next size up by multiplying by about 2**(1/3) and rounding to the
-// next power of 2 if close (three applications results in doubling). If small,
-// go up to at least 16, if overflow, go to max size_t value.
-size_t grow(size_t size) {
-    size_t was, top;
-    int shift;
-
-    was = size;
-    size += size >> 2;
-    top = size;
-    for (shift = 0; top > 7; shift++)
-        top >>= 1;
-    if (top == 7)
-        size = (size_t)1 << (shift + 3);
-    if (size < 16)
-        size = 16;
-    if (size <= was)
-        size = (size_t)0 - 1;
-    return size;
-}
-
-// Increase the size of the buffer in space.
-void grow_space(space_t *space) {
-    size_t more;
-
-    // compute next size up
-    more = grow(space->size);
-    if (more == space->size)
-        throw(ERANGE, (char *) "overflow");
-
-    // reallocate the buffer
-    space->buf = alloc(space->buf, more);
-    space->size = more;
-}
-
 
 // Free the memory resources of a pool (unused buffers)
 void free_pool(pool_t* pool)
