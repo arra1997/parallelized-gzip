@@ -789,18 +789,21 @@ local void treat_stdin()
     ifd = STDIN_FILENO;
     stdin_was_read = true;
 
-    if (decompress) {
-        method = get_method(ifd);
-        if (method < 0) {
-            do_exit(exit_code);  //error message already emitted 
-        }
-    }
+    // if (decompress) {
+    //     method = get_method(ifd);
+    //     if (method < 0) {
+    //         do_exit(exit_code);  //error message already emitted 
+    //     }
+    // }
     if (list) {
         do_list(ifd, method);
         return;
     }
     /* Actually do the compression/decompression. Loop over zipped members.
      */
+    method = 8;
+    if (decompress)
+      work = unzip;
     for (;;) {
         if (work (STDIN_FILENO, STDOUT_FILENO) != OK)
           return;
@@ -808,8 +811,8 @@ local void treat_stdin()
         if (input_eof ())
           break;
 
-        method = get_method(ifd);
-        if (method < 0) return; /* error message already emitted */
+        // method = get_method(ifd);
+        // if (method < 0) return; /* error message already emitted */
         bytes_out = 0;            /* required for length check */
     }
 
