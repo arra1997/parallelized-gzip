@@ -23,6 +23,14 @@
 #include <unistd.h>
 #include "utils.h"
 
+ssize_t Read(int fd, void *buf, size_t count)
+{
+  int bytes_read;
+  bytes_read = read (fd, buf, count);
+  assert (bytes_read != -1);
+  return bytes_read;
+}
+
 void *Calloc (size_t nelem, size_t elsize)
 {
   void *addr = calloc (nelem, elsize);

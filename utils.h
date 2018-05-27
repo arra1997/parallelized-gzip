@@ -17,7 +17,9 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
 #include <stdlib.h>
+#include <unistd.h>
 
+ssize_t Read (int fd, void *buf, size_t count);
 void Unlink (const char* pathname);
 void *Malloc(size_t size);
 void *Calloc (size_t nelem, size_t elsize);
