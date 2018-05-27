@@ -43,3 +43,4 @@ void compress_thread(void *dummy);
 size_t writen(int desc, void const *buf, size_t len);
 void *alloc(void *ptr, size_t size);
 unsigned put(int out, ...);
+length_t put_header(int outfd, char* name, time_t mtime, int level);

@@ -7,6 +7,7 @@
 #include "parallel.h"
 #include "utils.h"
 #include <stdint.h>
+#include <string.h>
 
 
 // Sliding dictionary size for deflate.
@@ -523,4 +524,22 @@ unsigned put(int out, ...) {
     writen(out, wrap, count);
     free(wrap);
     return count;
+}
+
+length_t put_header(int outfd, char* name, time_t mtime, int level) {
+    length_t len;
+
+    len = put(outfd,
+        1, (val_t)31,
+        1, (val_t)139,
+        1, (val_t)8,            // deflate
+        1, (val_t)(name != NULL ? 8 : 0),
+        4, (val_t)mtime,
+        1, (val_t)(level >= 9 ? 2 : level == 1 ? 4 : 0),
+        1, (val_t)3,            // unix
+        0);
+    if (name != NULL)
+        len += writen(outfd, name, strlen(name) + 1);
+
+    return len;
 }
