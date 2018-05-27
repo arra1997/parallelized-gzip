@@ -543,3 +543,10 @@ length_t put_header(int outfd, char* name, time_t mtime, int level) {
 
     return len;
 }
+
+void put_trailer(int outfd, length_t ulen, unsigned long check) {
+    put(outfd,
+        4, (val_t)check,
+        4, (val_t)ulen,
+        0);
+}
