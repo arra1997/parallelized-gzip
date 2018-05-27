@@ -550,3 +550,40 @@ void put_trailer(int outfd, length_t ulen, unsigned long check) {
         4, (val_t)ulen,
         0);
 }
+
+
+void write_thread(job_queue_t* jobqueue, int outfd, char* name, time_t mtime, int level) {
+    long seq;
+    struct job_t* job;
+    size_t input_len;
+    int more;
+    //length_t header_len;
+    length_t ulen;
+    length_t clen;
+    unsigned long check;
+
+    put_header(outfd, name, mtime, level);
+
+    ulen = clen = 0;
+    check = crc32_z(0L, Z_NULL, 0);
+    seq = 0;
+
+    do {
+        job = get_job_bgn(jobqueue);
+
+        more = job->more;
+        input_len = job->in->len;
+        drop_space(job->in);
+        ulen += input_len;
+        clen += job->out->len;
+
+        writen(outfd, job->out->buf, job->out->len);
+        drop_space(job->out);
+
+        check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
+        free(job);
+        seq++;
+    } while (more);
+
+    put_trailer(outfd, ulen, check);
+}
