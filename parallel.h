@@ -11,6 +11,8 @@ typedef struct pool_t pool_t;
 typedef struct job_t job_t;
 typedef struct job_queue_t job_queue_t;
 typedef struct compress_options compress_options;
+typedef unsigned long length_t;
+typedef length_t val_t;
 
 
 lock_t *new_lock(unsigned int users);
@@ -39,3 +41,5 @@ void add_job_end (job_queue_t *job_q, job_t *job);
 void compress_thread(void *dummy);
 
 size_t writen(int desc, void const *buf, size_t len);
+void *alloc(void *ptr, size_t size);
+unsigned put(int out, ...);

@@ -482,3 +482,45 @@ size_t writen(int desc, void const *buf, size_t len) {
     }
     return len;
 }
+
+unsigned put(int out, ...) {
+    // compute the total number of bytes
+    unsigned count = 0;
+    int n;
+    va_list ap;
+    va_start(ap, out);
+    while ((n = va_arg(ap, int)) != 0) {
+        va_arg(ap, val_t);
+        count += (unsigned)abs(n);
+    }
+    va_end(ap);
+
+    // allocate memory for the data
+    unsigned char* wrap = Malloc(count);
+    //unsigned char *wrap = alloc(NULL, count);
+    unsigned char *next = wrap;
+
+    // write the requested data to wrap[]
+    va_start(ap, out);
+    while ((n = va_arg(ap, int)) != 0) {
+        val_t val = va_arg(ap, val_t);
+        if (n < 0) {            // big endian
+            n = -n << 3;
+            do {
+                n -= 8;
+                *next++ = (unsigned char)(val >> n);
+            } while (n);
+        }
+        else                    // little endian
+            do {
+                *next++ = (unsigned char)val;
+                val >>= 8;
+            } while (--n);
+    }
+    va_end(ap);
+
+    // write wrap[] to out and return the number of bytes written
+    writen(out, wrap, count);
+    free(wrap);
+    return count;
+}
