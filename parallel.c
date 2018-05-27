@@ -213,6 +213,7 @@ struct job_t
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
   space_t *lens;              // coded list of flush block lengths
+  space_t *dict;
   unsigned long check;        // check value for input data
   lock_t *calc;                 // released when check calculation complete
   job_t *next;           // next job in the list (either list)
@@ -232,6 +233,14 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
   return job;
 }
 
+
+void set_dictionary(job_t *prev_job, job_t *next_job)
+{
+  if (prev_job==NULL || next_job==NULL)
+    return;
+  get_lock(prev_job->in->use);
+  next_job->dict = prev_job->in;
+}
 
 int load_job(job_t *job, int input_fd)
 {
@@ -361,7 +370,6 @@ void compress_thread(void *(opts)) {
 
   compress_options* options = (compress_options *) opts;
   job_queue_t *job_queue = options->job_queue;
-  pool_t *out_pool = options->out_pool;
   int level = options->level;
   gz_header *header = options->header;
 
