@@ -525,3 +525,28 @@ unsigned put(int out, ...) {
     free(wrap);
     return count;
 }
+
+length_t put_header(int outfd, char* name, time_t mtime, int level) {
+    length_t len;
+
+    len = put(outfd,
+        1, (val_t)31,
+        1, (val_t)139,
+        1, (val_t)8,            // deflate
+        1, (val_t)(name != NULL ? 8 : 0),
+        4, (val_t)mtime,
+        1, (val_t)(level >= 9 ? 2 : level == 1 ? 4 : 0),
+        1, (val_t)3,            // unix
+        0);
+    if (name != NULL)
+        len += writen(outfd, name, strlen(name) + 1);
+
+    return len;
+}
+
+void put_trailer(int outfd, length_t ulen, unsigned long check) {
+    put(outfd,
+        4, (val_t)check,
+        4, (val_t)ulen,
+        0);
+}
