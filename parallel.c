@@ -6,6 +6,7 @@
 #include <zlib.h>
 #include "parallel.h"
 #include "utils.h"
+#include <stdint.h>
 
 
 // Sliding dictionary size for deflate.
@@ -467,3 +468,17 @@ void compress_thread(void *(opts)) {
   return;
 }
 
+
+// Write len bytes, repeating write() calls as needed. Return len.
+size_t writen(int desc, void const *buf, size_t len) {
+    char const *next = buf;
+    size_t left = len;
+
+    while (left) {
+        size_t const max = SIZE_MAX >> 1;       // max ssize_t
+        ssize_t ret = write(desc, next, left > max ? max : left);
+        next += ret;
+        left -= (size_t)ret;
+    }
+    return len;
+}
