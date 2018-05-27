@@ -26,6 +26,9 @@
 #include "utils.h"
 #include "stdlib.h"
 #include "deflate.h"
+#include "parallel.h"
+
+//#define DICT 32768U
 
 #ifndef WINDOW_BITS
 #  define WINDOW_BITS 15
@@ -38,6 +41,7 @@
 #ifndef BUFFER_SIZE_DEFLATE
 #  define BUFFER_SIZE_DEFLATE 16384
 #endif
+
 
 
 /*
@@ -63,6 +67,44 @@ static void strm_init (z_stream *strm, int level)
     if (ret != Z_OK)
       exit (EXIT_FAILURE);
 }
+
+
+
+int deflate_file_parallel (int input_fd, int output_fd, long block_size,
+			   int processes, int level, gz_header *header)
+{
+  //Initialize job queue and memory pools
+  int read;
+  unsigned long seq;
+  job_queue_t *job_queue;
+  job_t *job;
+  pool_t *input_pool, *output_pool;//, *dict_pool;
+
+  //look at line 211 pigz.c
+  job_queue = new_job_queue ();
+  input_pool = new_pool (block_size, 2*processes, 3);
+  output_pool = new_pool (block_size, 2*processes, 1);
+  //  dict_pool = new_pool (DICT, 2*processes, 1);
+  read = 1;
+  seq = 0;
+  while(read)
+    {
+      job = new_job (seq, input_pool, output_pool, NULL); //not null later
+      if (load_job(job, input_fd)  == 0)
+	read = 0;
+      add_job_end(job_queue, job);
+      seq++;
+    }
+
+
+  //Create processes-1 new threads. 1 for writing and the rest for compression.
+
+  return 0;
+  
+  
+  
+}
+
 
 int deflate_file (int input_fd, int output_fd, long block_size, int level,
   gz_header *header, off_t *read_bytes, off_t *write_bytes)
@@ -115,3 +157,4 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
   free (out);
   return 0;
 }
+
