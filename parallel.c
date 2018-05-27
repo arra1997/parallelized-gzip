@@ -361,6 +361,7 @@ struct compress_options {
 // results. Keep looking for more jobs, returning when a job is found with a
 // sequence number of -1 (leave that job in the list for other incarnations to
 // find).
+
 void compress_thread(void *(opts)) {
   struct job_t *job;              // job pulled and working on
   unsigned char *next;            // pointer for blocks, check value data
@@ -369,7 +370,8 @@ void compress_thread(void *(opts)) {
   int ret;                        // for error checking purposes
 
   compress_options* options = (compress_options *) opts;
-  job_queue_t *job_queue = options->job_queue;
+  job_queue_t *job_queue = options->job_queue;   
+  pool_t *out_pool = options->out_pool;
   int level = options->level;
   gz_header *header = options->header;
 
