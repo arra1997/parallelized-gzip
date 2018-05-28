@@ -22,6 +22,7 @@ struct {
     int procs;
     int block;
 } g;
+
 struct lock_t
 {
   sem_t *semaphore;
@@ -79,7 +80,6 @@ void release_lock(lock_t* lock)
 // A space (one buffer for each space).
 struct space_t
 {
-  lock_t *use;            // return to pool when unused
   unsigned char *buf;     // buffer of size size
   size_t size;            // current size of this buffer
   size_t len;             // for application usage (initially zero)
@@ -92,7 +92,6 @@ space_t *new_space(unsigned int users, int size)
 {
   space_t *space;
   space = Malloc(sizeof(space_t));
-  space->use = new_lock(users);
   space->buf = Calloc(size, sizeof(unsigned char));
   space->size = size;
   space->len = 0;
@@ -108,7 +107,6 @@ space_t *new_space(unsigned int users, int size)
 void free_space(space_t *space)
 {
   free(space->buf);
-  free_lock(space->use);
   free(space);
 }
 
@@ -149,7 +147,6 @@ space_t *get_space(pool_t *pool)
   if (pool->head != NULL)
     {
       space = pool->head;
-      get_lock(space->use);
       pool->head = space->next;
       space->len = 0;
       release_lock(pool->safe);
@@ -172,14 +169,10 @@ void drop_space(space_t* space)
     return;
   pool_t *pool = space->pool;
   get_lock(pool->safe);
-  release_lock(space->use);
-  if (is_free(space->use))
-    {
-      space->next = pool->head;
-      pool->head = space;
-      space->len = 0;
-      release_lock(pool->have);
-    }
+  space->next = pool->head;
+  pool->head = space;
+  space->len = 0;
+  release_lock(pool->have);
   release_lock(pool->safe);
 }
 
@@ -227,6 +220,7 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
   job->in = get_space(in_pool);
   job->out = get_space(out_pool);
   job->lens = get_space(lens_pool);
+  job->dict = NULL;
   job->check = 0;
   job->calc = new_lock(1);
   job->next = NULL;
@@ -238,14 +232,20 @@ void set_dictionary(job_t *prev_job, job_t *next_job)
 {
   if (prev_job==NULL || next_job==NULL)
     return;
-  get_lock(prev_job->in->use);
-  next_job->dict = prev_job->in;
+  next_job->dict = Malloc(sizeof(space_t));
+  assert(prev_job->in->len >= DICT);
+  next_job->dict->buf = prev_job->in->buf + (prev_job->in->len - DICT);
+  next_job->dict->len = DICT;
+  next_job->dict->size = DICT;
+  next_job->dict->pool = NULL;
+  next_job->dict->next = NULL;
 }
 
 int load_job(job_t *job, int input_fd)
 {
   space_t *space = job->in;
-  return Read(input_fd, space->buf, space->size);
+  space->len = Read(input_fd, space->buf, space->size);
+  return space->len;
 }
 
 
@@ -351,7 +351,6 @@ void add_job_end (job_queue_t *job_q, job_t *job)
 
 struct compress_options {
   job_queue_t *job_queue;
-  pool_t *out_pool;
   int level;
   gz_header *header;
 };
@@ -371,7 +370,6 @@ void compress_thread(void *(opts)) {
 
   compress_options* options = (compress_options *) opts;
   job_queue_t *job_queue = options->job_queue;   
-  pool_t *out_pool = options->out_pool;
   int level = options->level;
   gz_header *header = options->header;
 
@@ -402,23 +400,15 @@ void compress_thread(void *(opts)) {
     (void)deflateReset(&strm);
     (void)deflateParams(&strm, level, Z_DEFAULT_STRATEGY);
 
-    // Set dictionary if provided
-    if (job->out != NULL) {
-      len = job->out->len;
-      left = len < DICT ? len : DICT;
-      deflateSetDictionary(&strm, job->out->buf + (len - left), (unsigned)left);
-      drop_space(job->out);
+    // Set dictionary if there is one
+    if (job->dict != NULL) {
+      deflateSetDictionary(&strm, job->dict->buf, job->dict->len);
     }
 
     // Set up I/O
-    job->out = get_space(out_pool);
     strm.next_in = job->in->buf;
     strm.next_out = job->out->buf;
 
-    // Compress each block, either flushing or finishing.
-    next = job->lens == NULL ? NULL : job->lens->buf;
-    left = job->in->len;
-    job->out->len = 0;
 
     do {
       // decode next block length from blocks list

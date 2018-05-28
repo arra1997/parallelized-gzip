@@ -31,6 +31,7 @@ void free_pool(pool_t* pool);
 job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool);
 int load_job(job_t *job, int input_fd);
 void free_job (job_t *job);
+void set_dictionary(job_t *prev_job, job_t *next_job);
 
 job_queue_t* new_job_queue(void);
 void free_job_queue (job_queue_t *job_q); // not thread safe
