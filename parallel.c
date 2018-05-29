@@ -333,6 +333,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
         if(cur == NULL) {
             prev = NULL;
             cur = job_q->head;
+            break;
         }
 
         if(cur->seq == seq) {
