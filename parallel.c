@@ -446,7 +446,7 @@ void *compress_thread(void *(opts)) {
   compress_options* options = (compress_options *) opts;
   job_queue_t *job_queue = options->job_queue;
   int level = options->level;
-  job_queue_t* write_job_queue = options->write_job_queue;
+  job_queue_t* write_q = options->write_job_queue;
 
   // Initialize the deflate stream
   z_stream strm;
@@ -488,7 +488,7 @@ void *compress_thread(void *(opts)) {
     crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
     job->check = crc;
     // insert write job in list in sorted order, alert write thread
-    write_q = options->write_job_queue;
+    
 
   }
 
