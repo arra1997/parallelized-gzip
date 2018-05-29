@@ -320,7 +320,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
 job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
     job_t* prev = NULL;
-    job_t* cur = job_q->head
+    job_t* cur = job_q->head;
     if(job_q->head == NULL) {
         return NULL;
     }
