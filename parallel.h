@@ -4,6 +4,7 @@ struct pool_t;
 struct job_t;
 struct job_queue_t;
 struct compress_options;
+struct write_opts;
 
 typedef struct lock_t lock_t;
 typedef struct space_t space_t;
@@ -13,7 +14,7 @@ typedef struct job_queue_t job_queue_t;
 typedef struct compress_options compress_options;
 typedef unsigned long length_t;
 typedef length_t val_t;
-
+typedef struct write_opts write_opts;
 
 lock_t *new_lock(unsigned int users, int fixed_size);
 void get_lock(lock_t* lock);
@@ -42,11 +43,12 @@ job_t* get_job_seq (job_queue_t* job_q, int seq);
 void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
 
+write_opts *new_write_options(job_queue_t *job_queue, int outfd, char *name, time_t mtime, int level);
 compress_options *new_compress_options (job_queue_t *job_queue, int level);
-void* compress_thread(void *dummy);
+void *compress_thread(void *dummy);
 
 size_t writen(int desc, void const *buf, size_t len);
 unsigned put(int out, ...);
 length_t put_header(int outfd, char* name, time_t mtime, int level);
 void put_trailer(int outfd, length_t ulen, unsigned long check);
-void write_thread(void *opts);
+void *write_thread(void *opts);

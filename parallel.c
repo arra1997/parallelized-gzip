@@ -423,7 +423,7 @@ compress_options* new_compress_options(job_queue_t *job_queue, int level)
 // sequence number of -1 (leave that job in the list for other incarnations to
 // find).
 
-void* compress_thread(void *(opts)) {
+void *compress_thread(void *(opts)) {
   struct job_t *job;              // job pulled and working on
   unsigned char *next;            // pointer for blocks, check value data
   size_t left;                    // input left to process
@@ -622,8 +622,19 @@ struct write_opts {
   int level;
 };
 
+write_opts *new_write_options(job_queue_t *jobqueue, int outfd, char *name, time_t mtime, int level)
+{
+  write_opts *wopts = Malloc(sizeof(write_opts));
+  wopts->jobqueue = jobqueue;
+  wopts->outfd = outfd;
+  wopts->name = name;
+  wopts->mtime = mtime;
+  wopts->level = level;
+  return wopts;
+}
 
-void write_thread(void *opts) {
+
+void* write_thread(void *opts) {
     struct write_opts *w_opts;
     long seq;
     struct job_queue_t *jobqueue;
@@ -669,4 +680,5 @@ void write_thread(void *opts) {
     } while (more);
 
     put_trailer(outfd, ulen, check);
+    return NULL;
 }
