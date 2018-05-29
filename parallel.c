@@ -483,12 +483,16 @@ void *compress_thread(void *(opts)) {
     //compress
     deflate_engine(&strm, job);
 
+
     //calculate check value
     uLong crc = crc32_z(0L, Z_NULL, 0);
     crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
     job->check = crc;
+
     // insert write job in list in sorted order, alert write thread
-    
+
+    add_job_end(write_job_queue, job);
+
 
   }
 
