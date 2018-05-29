@@ -37,6 +37,8 @@ job_queue_t* new_job_queue(void);
 void close_job_queue(job_queue_t *job_q);
 void free_job_queue (job_queue_t *job_q); // not thread safe
 job_t *get_job_bgn (job_queue_t *job_q);
+job_t* get_job_seq (job_queue_t* job_q, int seq);
+
 void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
 
