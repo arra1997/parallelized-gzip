@@ -47,6 +47,7 @@ write_opts *new_write_options(job_queue_t *job_queue, int outfd, char *name, tim
 compress_options *new_compress_options (job_queue_t *job_queue, int level);
 void free_compress_options(compress_options *copts);
 void free_write_options(write_opts *wopts);
+void deflate_engine (z_stream *strm, job_t *job);
 void *compress_thread(void *dummy);
 
 size_t writen(int desc, void const *buf, size_t len);

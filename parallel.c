@@ -418,6 +418,19 @@ void free_compress_options(compress_options *compress_options)
   free(compress_options);
 }
 
+void deflate_engine (z_stream *strm, job_t *job)
+{
+  int ret;
+  strm->next_in = job->in->buf;
+  strm->next_out = job->out->buf;
+  strm->avail_in = job->in->size;
+  strm->avail_out = job->out->size;
+  int flush = (job->more == 0) ? Z_FINISH : Z_SYNC_FLUSH;
+  ret = deflate (&strm, flush);
+  assert (ret != Z_STREAM_ERROR);
+  job->out->len = job->out->size - strm->avail_out;
+  return;
+}
 
 // Get the next compression job from the head of the list, compress and compute
 // the check value on the input, and put a job in the write list with the
@@ -442,7 +455,7 @@ void *compress_thread(void *(opts)) {
   strm.zfree  = Z_NULL;
   strm.opaque = Z_NULL;
   ret = deflateInit2 (&strm, level, Z_DEFLATED,
-                          WINDOW_BITS | GZIP_ENCODING, 8,
+                          -15, 8,
                           Z_DEFAULT_STRATEGY);
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
@@ -468,52 +481,8 @@ void *compress_thread(void *(opts)) {
       deflateSetDictionary(&strm, job->dict->buf, job->dict->len);
     }
 
-    // Set up I/O
-    strm.next_in = job->in->buf;
-    strm.next_out = job->out->buf;
-
-
-    do {
-      // decode next block length from blocks list
-      len = next == NULL ? 128 : *next++;
-      if (len < 128)                  // 64..32831
-          len = (len << 8) + (*next++) + 64;
-      else if (len == 128)            // end of list
-          len = left;
-      else if (len < 192)             // 1..63
-          len &= 0x3f;
-      else if (len < 224){            // 32832..2129983
-          len = ((len & 0x1f) << 16) + ((size_t)*next++ << 8);
-          len += *next++ + 32832U;
-      }
-      else {                          // 2129984..539000895
-          len = ((len & 0x1f) << 24) + ((size_t)*next++ << 16);
-          len += (size_t)*next++ << 8;
-          len += (size_t)*next++ + 2129984UL;
-      }
-      left -= len;
-
-
-      // ********** TODO **************
-      // run MAXP2-sized amounts of input through deflate -- this
-      // loop is needed for those cases where the unsigned type
-      // is smaller than the size_t type, or when len is close to
-      // the limit of the size_t type
-
-      // ********** TODO **************
-      // run the last piece through deflate -- end on a byte
-      // boundary, using a sync marker if necessary, or finish
-      // the deflate stream if this is the last block
-
-
-    } while(left);
-
-    drop_space(job->lens);
-    job->lens = NULL;
-
-    // ********** TODO ************** - Implement use_space
-    // reserve input buffer until check value has been calculated.
-    // use_space(job->in);
+    //compress
+    deflate_engine(strm, job);
 
     // ********** TODO **************
     // insert write job in list in sorted order, alert write thread
