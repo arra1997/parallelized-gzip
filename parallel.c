@@ -560,16 +560,38 @@ void put_trailer(int outfd, length_t ulen, unsigned long check) {
 }
 
 
-void write_thread(job_queue_t* jobqueue, int outfd, char* name, time_t mtime, int level) {
+
+struct write_opts {
+  job_queue_t *jobqueue;
+  int outfd;
+  char *name;
+  time_t mtime;
+  int level;
+};
+
+
+void write_thread(void *opts) {
+    struct write_opts *w_opts;
     long seq;
+    struct job_queue_t *jobqueue;
+    int outfd;
+    char *name;
+    time_t mtime;
+    int level;
     struct job_t* job;
     size_t input_len;
     int more;
-    //length_t header_len;
     length_t ulen;
     length_t clen;
     unsigned long check;
 
+    w_opts = (struct write_opts*) opts;
+    jobqueue = w_opts->jobqueue;
+    outfd = w_opts->outfd;
+    name = w_opts->name;
+    mtime = w_opts->mtime;
+    level = w_opts->level;
+    
     put_header(outfd, name, mtime, level);
 
     ulen = clen = 0;

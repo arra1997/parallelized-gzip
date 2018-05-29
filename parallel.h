@@ -46,4 +46,4 @@ size_t writen(int desc, void const *buf, size_t len);
 unsigned put(int out, ...);
 length_t put_header(int outfd, char* name, time_t mtime, int level);
 void put_trailer(int outfd, length_t ulen, unsigned long check);
-void write_thread(job_queue_t* jobqueue, int outfd, char* name, time_t mtime, int level);
+void write_thread(void *opts);
