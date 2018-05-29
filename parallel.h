@@ -45,7 +45,7 @@ void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
 
 write_opts *new_write_options(job_queue_t *job_queue, int outfd, char *name, time_t mtime, int level);
-compress_options *new_compress_options (job_queue_t *job_queue, int level);
+compress_options *new_compress_options (job_queue_t *job_queue, job_queue_t* write_job_queue, int level);
 void free_compress_options(compress_options *copts);
 void free_write_options(write_opts *wopts);
 void deflate_engine (z_stream *strm, job_t *job);
