@@ -28,7 +28,7 @@
 #include "deflate.h"
 #include "parallel.h"
 
-//#define DICT 32768U
+#define DICT 32768U
 
 #ifndef WINDOW_BITS
 #  define WINDOW_BITS 15
@@ -77,28 +77,38 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   unsigned long seq;
   job_queue_t *job_queue;
   job_t *prev_job, *job;
-  pool_t *input_pool, *output_pool;
-
-  job_queue = new_job_queue ();
-  input_pool = new_pool (block_size, 2*processes, 3);
-  output_pool = new_pool (block_size, 2*processes, 1);
-  seq = 0;
-  prev_job = NULL;
+  pool_t *input_pool, *output_pool, *dict_pool;
   
+  job_queue = new_job_queue ();
+  input_pool = new_pool (block_size, 2*processes);
+  output_pool = new_pool (block_size, 2*processes);
+  dict_pool = new_pool (DICT, 2*processes);
+  seq = 0;
+  prev_job = job = NULL;
+
   while(1)
     {
-      job = new_job (seq, input_pool, output_pool, NULL); //not null later
+      job = new_job (seq, input_pool, output_pool, NULL); 
+
       if (load_job (job, input_fd)  == 0)
 	{
+	  if (prev_job != NULL)
+	    add_job_end (job_queue, prev_job);
 	  free_job (job);
 	  break;
 	}
-      set_dictionary (prev_job, job);
-      add_job_end (job_queue, job);
-      seq++;
+
+      else if (prev_job != NULL)
+	{
+	  set_dictionary (prev_job, job, dict_pool);
+	  add_job_end (job_queue, prev_job);
+	}
+      
       prev_job = job;
+      ++seq;
     }
 
+  
   //Create processes-1 new threads. 1 for writing and the rest for compression.
 
   return 0;  

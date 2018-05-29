@@ -26,16 +26,16 @@ struct {
 struct lock_t
 {
   sem_t *semaphore;
-  unsigned int count;
+  int fixed_size;
 };
 
 
-lock_t *new_lock(unsigned int users)
+lock_t *new_lock(unsigned int users, int fixed_size)
 {
   lock_t *lock;
   lock = Malloc(sizeof(lock_t));
   lock->semaphore = Malloc(sizeof(sem_t));
-  lock->count = users;
+  lock->fixed_size = fixed_size;
   assert(sem_init(lock->semaphore, 0, users) == 0);
   return lock;
 }
@@ -55,15 +55,15 @@ void get_lock(lock_t* lock)
   assert(sem_wait(lock->semaphore) == 0);
 }
 
-int is_free(lock_t* lock)
-{
-  int value;
-  sem_getvalue(lock->semaphore, &value);
-  return (value == lock->count);
-}
-
 void release_lock(lock_t* lock)
 {
+  assert(sem_post(lock->semaphore) == 0);
+}
+
+void increment_lock(lock_t* lock)
+{
+  if (lock->fixed_size)
+    return;
   assert(sem_post(lock->semaphore) == 0);
 }
 
@@ -88,7 +88,7 @@ struct space_t
 };
 
 
-space_t *new_space(unsigned int users, int size)
+space_t *new_space(int size)
 {
   space_t *space;
   space = Malloc(sizeof(space_t));
@@ -120,19 +120,17 @@ struct pool_t
   size_t size;            // size of new buffers in this pool
   int limit;              // number of new spaces allowed
   int made;               // number of buffers made
-  int users_per_space;
 };
 
-pool_t *new_pool(size_t size, int limit, int users_per_space) {
+pool_t *new_pool(size_t size, int limit) {
   pool_t *pool;
   pool = Malloc(sizeof(pool_t));
-  pool->have = new_lock(limit);
-  pool->safe = new_lock(1);
+  pool->have = new_lock(limit, 1);
+  pool->safe = new_lock(1, 1);
   pool->head = NULL;
   pool->size = size;
   pool->limit = limit;
   pool->made = 0;
-  pool->users_per_space = users_per_space;
   return pool;
 }
 
@@ -156,7 +154,7 @@ space_t *get_space(pool_t *pool)
   // create a new space
   assert(pool->made != pool->limit);
   pool->made++;
-  space = new_space(pool->users_per_space, pool->size);
+  space = new_space(pool->size);
   space->pool = pool;
   release_lock(pool->safe);
   return space;
@@ -222,23 +220,20 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
   job->lens = get_space(lens_pool);
   job->dict = NULL;
   job->check = 0;
-  job->calc = new_lock(1);
+  job->calc = new_lock(1, 1);
   job->next = NULL;
   return job;
 }
 
 
-void set_dictionary(job_t *prev_job, job_t *next_job)
+void set_dictionary(job_t *prev_job, job_t *next_job, pool_t *dict_pool)
 {
   if (prev_job==NULL || next_job==NULL)
     return;
-  next_job->dict = Malloc(sizeof(space_t));
+  next_job->dict = get_space(dict_pool);
   assert(prev_job->in->len >= DICT);
-  next_job->dict->buf = prev_job->in->buf + (prev_job->in->len - DICT);
+  memcpy(next_job->dict->buf, prev_job->in->buf + (prev_job->in->len - DICT), DICT);
   next_job->dict->len = DICT;
-  next_job->dict->size = DICT;
-  next_job->dict->pool = NULL;
-  next_job->dict->next = NULL;
 }
 
 int load_job(job_t *job, int input_fd)
@@ -251,6 +246,7 @@ int load_job(job_t *job, int input_fd)
 
 void free_job (job_t *job)
 {
+  free(job->dict);
   free_space(job->in);
   free_space(job->out);
   free_space(job->lens);
@@ -263,17 +259,26 @@ struct job_queue_t
   job_t *head;     // linked list of jobs
   job_t *tail;
   int len;         // length of job linked list
+  lock_t *active;
   lock_t *use;
 };
 
-job_queue_t* new_job_queue()
+job_queue_t* new_job_queue ()
 {
-  job_queue_t *job_q = Malloc(sizeof(job_queue_t));
+  job_queue_t *job_q = Malloc (sizeof(job_queue_t));
   job_q->head = NULL;
   job_q->tail = NULL;
   job_q->len = 0;
-  job_q->use = new_lock(1);
+  job_q->use = new_lock (1, 1);
+  job_q->active = new_lock (0, 1);
   return job_q;
+}
+
+void close_job_queue (job_queue_t *job_q)
+{
+  get_lock(job_q->use);
+  increment_lock(job_q->active);
+  release_lock(job_q->use);
 }
 
 void free_job_queue (job_queue_t *job_q)// not thread safe
@@ -293,6 +298,7 @@ void free_job_queue (job_queue_t *job_q)// not thread safe
 //the job should be freed if not put back to job queue after usage
 job_t *get_job_bgn (job_queue_t *job_q)
 {
+  get_lock(job_q->active);
   get_lock(job_q->use);
   job_t *ret = job_q->head;
   if (job_q->head == NULL)
@@ -319,6 +325,7 @@ void add_job_bgn (job_queue_t *job_q, job_t *job)
   job->next = job_q->head;
   job_q->head = job;
   ++job_q->len;
+  increment_lock(job_q->active);
   release_lock(job_q->use);
 }
 
@@ -337,6 +344,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   job_q->tail = job;
   job->next = NULL;
   ++job_q->len;
+  increment_lock(job_q->active);
   release_lock(job_q->use);
 }
 
