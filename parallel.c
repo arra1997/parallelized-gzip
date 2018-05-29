@@ -276,7 +276,7 @@ job_queue_t* new_job_queue ()
   job_q->tail = NULL;
   job_q->len = 0;
   job_q->use = new_lock (1, 1);
-  job_q->active = new_lock (0, 1);
+  job_q->active = new_lock (0, 0);
   return job_q;
 }
 
