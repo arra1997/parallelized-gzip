@@ -316,6 +316,52 @@ job_t *get_job_bgn (job_queue_t *job_q)
   return ret;
 }
 
+//get a job from the queue that has the same sequece number as seq
+job_t* get_job_seq (job_queue_t* job_q, int seq) {
+
+    job_t* prev = NULL;
+    job_t* cur = job_q->head
+    if(job_q->head == NULL) {
+        return NULL;
+    }
+
+    while(true) {
+        if(cur == NULL) {
+            prev = NULL;
+            cur = job_q->head;
+        }
+
+        if(cur->seq == seq) {
+            break;
+        }
+
+        prev = cur;
+        cur = cur->next;
+    }
+
+    get_lock(job_q->active);
+    get_lock(job_q->use);
+    if(prev = NULL) {
+        job_q->head = job_q->head->next;
+        if (job_q->head == NULL) {
+            job_q->tail = NULL;
+        }
+        --job_q->len;
+        cur->next = NULL;
+        release_lock(job_q->use);
+        return cur;
+    } else {
+        prev->next = cur->next;
+        if (job_q->head == NULL) {
+            job_q->tail = NULL;
+        }
+        --job_q->len;
+        cur->next = NULL;
+        release_lock(job_q->use);
+        return cur;
+    }
+}
+
 //add a job to the beginning of the job queue
 void add_job_bgn (job_queue_t *job_q, job_t *job)
 {
@@ -390,7 +436,7 @@ void *compress_thread(void *(opts)) {
   int ret;                        // for error checking purposes
 
   compress_options* options = (compress_options *) opts;
-  job_queue_t *job_queue = options->job_queue;   
+  job_queue_t *job_queue = options->job_queue;
   int level = options->level;
 
   // Initialize the deflate stream
@@ -619,7 +665,7 @@ void* write_thread(void *opts) {
     name = w_opts->name;
     mtime = w_opts->mtime;
     level = w_opts->level;
-    
+
     put_header(outfd, name, mtime, level);
 
     ulen = clen = 0;
@@ -627,7 +673,7 @@ void* write_thread(void *opts) {
     seq = 0;
 
     do {
-        job = get_job_bgn(jobqueue);
+        job = get_job_seq(jobqueue, seq);
 
         more = job->more;
         input_len = job->in->len;
