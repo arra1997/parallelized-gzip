@@ -215,6 +215,7 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
 {
   job_t *job = Malloc(sizeof(job_t));
   job->seq = seq;
+  job->more = 1;
   job->in = get_space(in_pool);
   job->out = get_space(out_pool);
   job->lens = get_space(lens_pool);
@@ -226,7 +227,12 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
 }
 
 
-void set_dictionary(job_t *prev_job, job_t *next_job, pool_t *dict_pool)
+void set_last_job(job_t *job)
+{
+  job->more = 0;
+}
+
+void set_dictionary (job_t *prev_job, job_t *next_job, pool_t *dict_pool)
 {
   if (prev_job==NULL || next_job==NULL)
     return;
@@ -236,7 +242,7 @@ void set_dictionary(job_t *prev_job, job_t *next_job, pool_t *dict_pool)
   next_job->dict->len = DICT;
 }
 
-int load_job(job_t *job, int input_fd)
+int load_job (job_t *job, int input_fd)
 {
   space_t *space = job->in;
   space->len = Read(input_fd, space->buf, space->size);

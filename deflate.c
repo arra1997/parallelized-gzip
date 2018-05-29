@@ -110,7 +110,10 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
       if (load_job (job, input_fd)  == 0)
 	{
 	  if (prev_job != NULL)
-	    add_job_end (job_queue, prev_job);
+	    {
+	      set_last_job (prev_job);
+	      add_job_end (job_queue, prev_job);
+	    }
 	  free_job (job);
 	  break;
 	}
