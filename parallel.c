@@ -405,7 +405,7 @@ struct compress_options {
   job_queue_t *write_job_queue;
 };
 
-compress_options *new_compress_options(job_queue_t *job_queue, job_queue_t* write_job_queue int level)
+compress_options *new_compress_options(job_queue_t *job_queue, job_queue_t* write_job_queue, int level)
 {
   compress_options *copts = Malloc(sizeof(compress_options));
   copts->job_queue = job_queue;
@@ -492,8 +492,7 @@ void *compress_thread(void *(opts)) {
     // insert write job in list in sorted order, alert write thread
 
     add_job_end(write_q, job);
-
-
+    
   }
 
   // found job with seq == -1 -- return to join
