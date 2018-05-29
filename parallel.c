@@ -310,6 +310,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
   if (job_q->head == NULL)
     {
       assert(job_q->len == 0);
+      release_lock(job_q->active);
       release_lock(job_q->use);
       return NULL;
     }

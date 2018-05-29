@@ -82,7 +82,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   compress_options *c_opts;
   write_opts *w_opts;
   pthread_t *pthread_array;
- 
+
   job_queue = new_job_queue ();
   input_pool = new_pool (block_size, 2*processes);
   output_pool = new_pool (block_size, 2*processes);
@@ -90,51 +90,51 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   seq = 0;
   prev_job = job = NULL;
 
-  //Create processes new threads for compression and 1 for writing
+  //Create processes # of new threads for compression and 1 for writing
   pthread_array = Calloc (processes + 1, sizeof(pthread_array));
   c_opts = new_compress_options (job_queue, level);
-  w_opts = new_write_options (job_queue, output_fd, name, mtime, level); 
-  
+  w_opts = new_write_options (job_queue, output_fd, name, mtime, level);
+
   for (i = 0; i < processes; ++i)
     {
       pthread_create(pthread_array+i, (void *)c_opts, compress_thread, NULL);
     }
   pthread_create(pthread_array+i, (void *)w_opts, write_thread, NULL);
-  
-  
+
+
   // Populate jobs add to job queue
   while(1)
     {
-      job = new_job (seq, input_pool, output_pool, NULL); 
+      job = new_job (seq, input_pool, output_pool, NULL);
 
       if (load_job (job, input_fd)  == 0)
-	{
-	  if (prev_job != NULL)
 	    {
-	      set_last_job (prev_job);
-	      add_job_end (job_queue, prev_job);
+    	  if (prev_job != NULL)
+    	    {
+    	      set_last_job (prev_job);
+    	      add_job_end (job_queue, prev_job);
+    	    }
+    	  free_job (job);
+    	  break;
 	    }
-	  free_job (job);
-	  break;
-	}
 
       else if (prev_job != NULL)
-	{
-	  set_dictionary (prev_job, job, dict_pool);
-	  add_job_end (job_queue, prev_job);
-	}
-      
+    	{
+    	  set_dictionary (prev_job, job, dict_pool);
+    	  add_job_end (job_queue, prev_job);
+    	}
+
       prev_job = job;
       ++seq;
     }
   close_job_queue (job_queue);
-  
+
 
   for (i = 0; i < processes + 1; ++i)
     {
       pthread_join (pthread_array[i], NULL);
     }
-  
+
   free_pool (input_pool);
   free_pool (output_pool);
   free_pool (dict_pool);
@@ -142,7 +142,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   free_compress_options (c_opts);
   free_write_options (w_opts);
   free (pthread_array);
-  return 0;  
+  return 0;
 }
 
 
@@ -197,4 +197,3 @@ int deflate_file (int input_fd, int output_fd, long block_size, int level,
   free (out);
   return 0;
 }
-
