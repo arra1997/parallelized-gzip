@@ -403,6 +403,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
 struct compress_options {
   job_queue_t *job_queue;
   int level;
+  job_queue_t *write_job_queue;
 };
 
 compress_options *new_compress_options(job_queue_t *job_queue, int level)
