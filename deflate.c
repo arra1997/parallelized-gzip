@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "deflate.h"
 #include "utils.h"
@@ -74,11 +75,14 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 			   int processes, int level, gz_header *header)
 {
   //Initialize job queue and memory pools
+  int i;
   unsigned long seq;
   job_queue_t *job_queue;
   job_t *prev_job, *job;
   pool_t *input_pool, *output_pool, *dict_pool;
-  
+  compress_options *c_opts;
+  pthread_t *pthread_array;
+ 
   job_queue = new_job_queue ();
   input_pool = new_pool (block_size, 2*processes);
   output_pool = new_pool (block_size, 2*processes);
@@ -86,6 +90,16 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   seq = 0;
   prev_job = job = NULL;
 
+  pthread_array = Calloc(processes - 1, sizeof(pthread_array));
+  c_opts = new_compress_options(job_queue, level, header);
+  for (i = 0; i < processes - 2; ++i)
+    {
+      pthread_create(pthread_array+i, (void *)c_opts, compress_thread, NULL);
+    }
+  
+  
+
+  
   while(1)
     {
       job = new_job (seq, input_pool, output_pool, NULL); 

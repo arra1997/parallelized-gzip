@@ -364,13 +364,23 @@ struct compress_options {
   gz_header *header;
 };
 
+compress_options* new_compress_options(job_queue_t *job_queue, int level, gz_header *header)
+{
+  compress_options *copts = Malloc(sizeof(compress_options));
+  copts->job_queue = job_queue;
+  copts->level = level;
+  copts->header = header;
+  return copts;
+}
+
+
 // Get the next compression job from the head of the list, compress and compute
 // the check value on the input, and put a job in the write list with the
 // results. Keep looking for more jobs, returning when a job is found with a
 // sequence number of -1 (leave that job in the list for other incarnations to
 // find).
 
-void compress_thread(void *(opts)) {
+void* compress_thread(void *(opts)) {
   struct job_t *job;              // job pulled and working on
   unsigned char *next;            // pointer for blocks, check value data
   size_t left;                    // input left to process
@@ -475,7 +485,7 @@ void compress_thread(void *(opts)) {
 
   // found job with seq == -1 -- return to join
   (void)deflateEnd(&strm);
-  return;
+  return NULL;
 }
 
 
