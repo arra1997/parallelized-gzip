@@ -491,7 +491,7 @@ void *compress_thread(void *(opts)) {
 
     // insert write job in list in sorted order, alert write thread
 
-    add_job_end(write_job_queue, job);
+    add_job_end(write_q, job);
 
 
   }
