@@ -360,15 +360,13 @@ void add_job_end (job_queue_t *job_q, job_t *job)
 struct compress_options {
   job_queue_t *job_queue;
   int level;
-  gz_header *header;
 };
 
-compress_options* new_compress_options(job_queue_t *job_queue, int level, gz_header *header)
+compress_options* new_compress_options(job_queue_t *job_queue, int level)
 {
   compress_options *copts = Malloc(sizeof(compress_options));
   copts->job_queue = job_queue;
   copts->level = level;
-  copts->header = header;
   return copts;
 }
 
@@ -389,7 +387,6 @@ void* compress_thread(void *(opts)) {
   compress_options* options = (compress_options *) opts;
   job_queue_t *job_queue = options->job_queue;   
   int level = options->level;
-  gz_header *header = options->header;
 
   // Initialize the deflate stream
   z_stream strm;
@@ -402,7 +399,7 @@ void* compress_thread(void *(opts)) {
   if (ret != Z_OK)
     exit (EXIT_FAILURE);
 
-  ret = deflateSetHeader (&strm, header);
+  //ret = deflateSetHeader (&strm, header);
   if (ret != Z_OK)
     exit(EXIT_FAILURE);
 

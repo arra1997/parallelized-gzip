@@ -40,7 +40,7 @@ job_t *get_job_bgn (job_queue_t *job_q);
 void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
 
-compress_options *new_compress_options (job_queue_t *job_queue, int level, gz_header *header);
+compress_options *new_compress_options (job_queue_t *job_queue, int level);
 void* compress_thread(void *dummy);
 
 size_t writen(int desc, void const *buf, size_t len);

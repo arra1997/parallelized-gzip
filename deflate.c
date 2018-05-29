@@ -72,7 +72,7 @@ static void strm_init (z_stream *strm, int level)
 
 
 int deflate_file_parallel (int input_fd, int output_fd, long block_size,
-			   int processes, int level, gz_header *header)
+			   int processes, int level)
 {
   //Initialize job queue and memory pools
   int i;
@@ -91,7 +91,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   prev_job = job = NULL;
 
   pthread_array = Calloc(processes - 1, sizeof(pthread_array));
-  c_opts = new_compress_options(job_queue, level, header);
+  c_opts = new_compress_options(job_queue, level);
   for (i = 0; i < processes - 2; ++i)
     {
       pthread_create(pthread_array+i, (void *)c_opts, compress_thread, NULL);
