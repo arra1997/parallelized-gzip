@@ -405,11 +405,12 @@ struct compress_options {
   job_queue_t *write_job_queue;
 };
 
-compress_options *new_compress_options(job_queue_t *job_queue, int level)
+compress_options *new_compress_options(job_queue_t *job_queue, job_queue_t* write_job_queue int level)
 {
   compress_options *copts = Malloc(sizeof(compress_options));
   copts->job_queue = job_queue;
   copts->level = level;
+  copts->write_job_queue = write_job_queue;
   return copts;
 }
 
@@ -445,6 +446,7 @@ void *compress_thread(void *(opts)) {
   compress_options* options = (compress_options *) opts;
   job_queue_t *job_queue = options->job_queue;
   int level = options->level;
+  job_queue_t* write_job_queue = options->write_job_queue;
 
   // Initialize the deflate stream
   z_stream strm;
