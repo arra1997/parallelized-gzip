@@ -397,13 +397,6 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   release_lock(job_q->use);
 }
 
-#ifndef WINDOW_BITS
-#  define WINDOW_BITS 15
-#endif
-
-#ifndef GZIP_ENCODING
-#  define GZIP_ENCODING 16
-#endif
 
 
 struct compress_options {
@@ -433,7 +426,7 @@ void deflate_engine (z_stream *strm, job_t *job)
   strm->avail_in = job->in->size;
   strm->avail_out = job->out->size;
   int flush = (job->more == 0) ? Z_FINISH : Z_SYNC_FLUSH;
-  ret = deflate (&strm, flush);
+  ret = deflate (strm, flush);
   assert (ret != Z_STREAM_ERROR);
   job->out->len = job->out->size - strm->avail_out;
   return;
@@ -447,9 +440,6 @@ void deflate_engine (z_stream *strm, job_t *job)
 
 void *compress_thread(void *(opts)) {
   struct job_t *job;              // job pulled and working on
-  unsigned char *next;            // pointer for blocks, check value data
-  size_t left;                    // input left to process
-  size_t len;                     // remaining bytes to compress/check
   int ret;                        // for error checking purposes
 
   compress_options* options = (compress_options *) opts;
@@ -489,7 +479,7 @@ void *compress_thread(void *(opts)) {
     }
 
     //compress
-    deflate_engine(strm, job);
+    deflate_engine(&strm, job);
 
     // ********** TODO **************
     // insert write job in list in sorted order, alert write thread
