@@ -19,4 +19,4 @@
 int deflate_file (int input_fd, int output_fd, long block_size, int level,
 		  gz_header *header, off_t *read_bytes, off_t *write_bytes);
 int deflate_file_parallel(int input_fd, int output_fd, long block_size,
-			  int processes, int level);
+			  int processes, int level, char *name, time_t mtime);
