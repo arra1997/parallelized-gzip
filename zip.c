@@ -39,7 +39,7 @@ int zip(in, out)
 //     uch  flags = 0;         /* general purpose bit flags */
     ush  attr = 0;          /* ascii/binary flag */
 //     ush  deflate_flags = 0; /* pkzip -es, -en or -ex equivalent */
-    ulg  stamp;
+    //ulg  stamp;
 
 //     ifd = in;
 //     ofd = out;
@@ -56,17 +56,17 @@ int zip(in, out)
 //         flags |= ORIG_NAME;
 //     }
 //     put_byte(flags);         /* general flags */
-    if (time_stamp.tv_nsec < 0)
-      stamp = 0;
-    else if (0 < time_stamp.tv_sec && time_stamp.tv_sec <= 0xffffffff)
-      stamp = time_stamp.tv_sec;
-    else
-      {
-        /* It's intended that timestamp 0 generates this warning,
-           since gzip format reserves 0 for something else.  */
-        warning ("file timestamp out of range for gzip format");
-        stamp = 0;
-      }
+    // if (time_stamp.tv_nsec < 0)
+    //   stamp = 0;
+    // else if (0 < time_stamp.tv_sec && time_stamp.tv_sec <= 0xffffffff)
+    //   stamp = time_stamp.tv_sec;
+    // else
+    //   {
+    //     /* It's intended that timestamp 0 generates this warning,
+    //        since gzip format reserves 0 for something else.  */
+    //     warning ("file timestamp out of range for gzip format");
+    //     stamp = 0;
+    //   }
 //     put_long (stamp);
 
 //     /* Write deflated file to zip file */
@@ -106,27 +106,27 @@ int zip(in, out)
 
 //     flush_outbuf();
 
-    gz_header header =
-      {
-        .text = attr,
-        .time = stamp,
-        .xflags = 0,
-        .os = OS_CODE,
-        .extra = Z_NULL,
-        .extra_len = 0,
-        .extra_max = 0,
-        .name = Z_NULL,
-        .name_max = 0,
-        .comment = Z_NULL,
-        .comm_max = 0,
-        .hcrc = 0,
-        .done = 0
-      };
-    header_bytes = 10;
+    // gz_header header =
+    //   {
+    //     .text = attr,
+    //     .time = stamp,
+    //     .xflags = 0,
+    //     .os = OS_CODE,
+    //     .extra = Z_NULL,
+    //     .extra_len = 0,
+    //     .extra_max = 0,
+    //     .name = Z_NULL,
+    //     .name_max = 0,
+    //     .comment = Z_NULL,
+    //     .comm_max = 0,
+    //     .hcrc = 0,
+    //     .done = 0
+    //   };
+    // header_bytes = 10;
     if (save_orig_name)
       {
         Bytef *p = (Bytef*) gzip_base_name (ifname);
-        header.name = p;
+        //header.name = p;
         do
           {
             header_bytes++;
@@ -135,8 +135,13 @@ int zip(in, out)
       }
     bytes_in = 0;
     bytes_out = 0;
-    deflate_file (in, out, 128*128, level, &header, &bytes_in, &bytes_out);
-    header_bytes += 2*4;
+    //deflate_file (in, out, 128*128, level, &header, &bytes_in, &bytes_out);
+    //header_bytes += 2*4;
+
+    char name[16] = "compressed_file";
+    deflate_file_parallel(in, out, 128, 4, level, name, 0);
+
+
     return OK;
 }
 
