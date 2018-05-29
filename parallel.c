@@ -203,7 +203,7 @@ struct job_t
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
-  space_t *lens;              // coded list of flush block lengths
+ // space_t *lens;              // coded list of flush block lengths
   space_t *dict;
   unsigned long check;        // check value for input data
   lock_t *calc;                 // released when check calculation complete
@@ -218,7 +218,7 @@ job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
   job->more = 1;
   job->in = get_space(in_pool);
   job->out = get_space(out_pool);
-  job->lens = get_space(lens_pool);
+  //job->lens = get_space(lens_pool);
   job->dict = NULL;
   job->check = 0;
   job->calc = new_lock(1, 1);
@@ -255,7 +255,7 @@ void free_job (job_t *job)
   free(job->dict);
   free_space(job->in);
   free_space(job->out);
-  free_space(job->lens);
+  //free_space(job->lens);
   free(job->calc);
   free(job);
 }
@@ -493,7 +493,7 @@ void *compress_thread(void *(opts)) {
     // insert write job in list in sorted order, alert write thread
 
     add_job_end(write_q, job);
-    
+
   }
 
   // found job with seq == -1 -- return to join
