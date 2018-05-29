@@ -484,12 +484,11 @@ void *compress_thread(void *(opts)) {
     deflate_engine(&strm, job);
 
     // ********** TODO **************
-    // insert write job in list in sorted order, alert write thread
-
-    // ********** TODO **************
     // calculate the check value in parallel with writing, alert the
     // write thread that the calculation is complete, and drop this
     // usage of the input buffer
+
+    add_job_end(write_job_queue, job);
 
     // done with that one -- go find another job
 
