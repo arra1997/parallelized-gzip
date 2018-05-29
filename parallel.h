@@ -30,12 +30,13 @@ void drop_space(space_t* space);
 void free_pool(pool_t* pool);
 
 job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool);
-int load_job(job_t *job, int input_fd);
+void set_last_job (job_t *job);
+int load_job (job_t *job, int input_fd);
 void free_job (job_t *job);
-void set_dictionary(job_t *prev_job, job_t *next_job, pool_t *dict_pool);
+void set_dictionary (job_t *prev_job, job_t *next_job, pool_t *dict_pool);
 
-job_queue_t* new_job_queue(void);
-void close_job_queue(job_queue_t *job_q);
+job_queue_t* new_job_queue (void);
+void close_job_queue (job_queue_t *job_q);
 void free_job_queue (job_queue_t *job_q); // not thread safe
 job_t *get_job_bgn (job_queue_t *job_q);
 job_t* get_job_seq (job_queue_t* job_q, int seq);
