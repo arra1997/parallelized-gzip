@@ -77,6 +77,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   int i;
   unsigned long seq;
   job_queue_t *job_queue;
+  job_queue_t *write_job_queue;
   job_t *prev_job, *job;
   pool_t *input_pool, *output_pool, *dict_pool;
   compress_options *c_opts;
@@ -92,9 +93,9 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 
   //Create processes new threads for compression and 1 for writing
   pthread_array = Calloc (processes + 1, sizeof(pthread_array));
-  c_opts = new_compress_options (job_queue, level);
-  w_opts = new_write_options (job_queue, output_fd, name, mtime, level); 
-  
+  c_opts = new_compress_options (job_queue, write_job_queue, level);
+  w_opts = new_write_options (write_job_queue, output_fd, name, mtime, level);
+
   for (i = 0; i < processes; ++i)
     {
       pthread_create(pthread_array+i, (void *)c_opts, compress_thread, NULL);
