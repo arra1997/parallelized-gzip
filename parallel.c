@@ -325,7 +325,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
         return NULL;
     }
 
-    while(true) {
+    while(1) {
         if(cur == NULL) {
             prev = NULL;
             cur = job_q->head;
@@ -341,7 +341,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
     get_lock(job_q->active);
     get_lock(job_q->use);
-    if(prev = NULL) {
+    if(prev == NULL) {
         job_q->head = job_q->head->next;
         if (job_q->head == NULL) {
             job_q->tail = NULL;
@@ -408,12 +408,17 @@ struct compress_options {
   int level;
 };
 
-compress_options* new_compress_options(job_queue_t *job_queue, int level)
+compress_options *new_compress_options(job_queue_t *job_queue, int level)
 {
   compress_options *copts = Malloc(sizeof(compress_options));
   copts->job_queue = job_queue;
   copts->level = level;
   return copts;
+}
+
+void free_compress_options(compress_options *compress_options)
+{
+  free(compress_options);
 }
 
 
@@ -631,6 +636,11 @@ write_opts *new_write_options(job_queue_t *jobqueue, int outfd, char *name, time
   wopts->mtime = mtime;
   wopts->level = level;
   return wopts;
+}
+
+void free_write_options(write_opts *write_options)
+{
+  free(write_options);
 }
 
 
