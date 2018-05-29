@@ -42,7 +42,8 @@ job_t* get_job_seq (job_queue_t* job_q, int seq);
 void add_job_bgn (job_queue_t *job_q, job_t *job);
 void add_job_end (job_queue_t *job_q, job_t *job);
 
-void compress_thread(void *dummy);
+compress_options *new_compress_options (job_queue_t *job_queue, int level);
+void* compress_thread(void *dummy);
 
 size_t writen(int desc, void const *buf, size_t len);
 unsigned put(int out, ...);
