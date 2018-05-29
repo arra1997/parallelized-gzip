@@ -99,9 +99,9 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 
   for (i = 0; i < processes; ++i)
     {
-      pthread_create(pthread_array+i, (void *)c_opts, compress_thread, NULL);
+      pthread_create(&pthread_array[i], NULL, compress_thread, (void*) c_opts);
     }
-  pthread_create(pthread_array+i, (void *)w_opts, write_thread, NULL);
+  pthread_create(&pthread_array[i], NULL, write_thread, (void*) w_opts);
 
 
   // Populate jobs add to job queue
