@@ -320,12 +320,12 @@ job_t *get_job_bgn (job_queue_t *job_q)
 job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
     job_t* prev = NULL;
-    job_t* cur = job_q->head
+    job_t* cur = job_q->head;
     if(job_q->head == NULL) {
         return NULL;
     }
 
-    while(true) {
+    while(1) {
         if(cur == NULL) {
             prev = NULL;
             cur = job_q->head;
@@ -341,7 +341,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
     get_lock(job_q->active);
     get_lock(job_q->use);
-    if(prev = NULL) {
+    if(prev == NULL) {
         job_q->head = job_q->head->next;
         if (job_q->head == NULL) {
             job_q->tail = NULL;
