@@ -423,7 +423,7 @@ void deflate_engine (z_stream *strm, job_t *job)
   int ret;
   strm->next_in = job->in->buf;
   strm->next_out = job->out->buf;
-  strm->avail_in = job->in->size;
+  strm->avail_in = job->in->len;
   strm->avail_out = job->out->size;
   int flush = (job->more == 0) ? Z_FINISH : Z_SYNC_FLUSH;
   ret = deflate (strm, flush);
@@ -481,15 +481,12 @@ void *compress_thread(void *(opts)) {
     //compress
     deflate_engine(&strm, job);
 
-    // ********** TODO **************
+    //calculate check value
+    uLong crc = crc32_z(0L, Z_NULL, 0);
+    crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
+    job->check = crc;
     // insert write job in list in sorted order, alert write thread
-
-    // ********** TODO **************
-    // calculate the check value in parallel with writing, alert the
-    // write thread that the calculation is complete, and drop this
-    // usage of the input buffer
-
-    // done with that one -- go find another job
+    write_q = options->write_job_queue;
 
   }
 
