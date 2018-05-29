@@ -234,12 +234,16 @@ void set_last_job(job_t *job)
 
 void set_dictionary (job_t *prev_job, job_t *next_job, pool_t *dict_pool)
 {
+  int dict_len;
   if (prev_job==NULL || next_job==NULL)
     return;
   next_job->dict = get_space(dict_pool);
-  assert(prev_job->in->len >= DICT);
-  memcpy(next_job->dict->buf, prev_job->in->buf + (prev_job->in->len - DICT), DICT);
-  next_job->dict->len = DICT;
+  if (prev_job->in->len > DICT)
+    dict_len = DICT;
+  else
+    dict_len = prev_job->in->len;
+  memcpy(next_job->dict->buf, prev_job->in->buf + (prev_job->in->len - dict_len), dict_len);
+  next_job->dict->len = dict_len;
 }
 
 int load_job (job_t *job, int input_fd)
