@@ -42,11 +42,15 @@ deflate.o: deflate.c /usr/include/stdc-predef.h lib/config.h \
  /usr/include/x86_64-linux-gnu/bits/string.h \
  /usr/include/x86_64-linux-gnu/bits/string2.h lib/stdlib.h \
  /usr/include/stdlib.h /usr/include/x86_64-linux-gnu/bits/string3.h \
- deflate.h utils.h /usr/include/x86_64-linux-gnu/bits/waitflags.h \
+ /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/timex.h \
+ /usr/include/x86_64-linux-gnu/bits/setjmp.h deflate.h utils.h \
+ /usr/include/x86_64-linux-gnu/bits/waitflags.h \
  /usr/include/x86_64-linux-gnu/bits/waitstatus.h lib/alloca.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
- /usr/include/x86_64-linux-gnu/bits/stdlib.h
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h parallel.h
 
 /usr/include/stdc-predef.h:
 
@@ -174,6 +178,16 @@ lib/stdlib.h:
 
 /usr/include/x86_64-linux-gnu/bits/string3.h:
 
+/usr/include/pthread.h:
+
+/usr/include/sched.h:
+
+/usr/include/x86_64-linux-gnu/bits/sched.h:
+
+/usr/include/x86_64-linux-gnu/bits/timex.h:
+
+/usr/include/x86_64-linux-gnu/bits/setjmp.h:
+
 deflate.h:
 
 utils.h:
@@ -189,3 +203,5 @@ lib/alloca.h:
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 
 /usr/include/x86_64-linux-gnu/bits/stdlib.h:
+
+parallel.h:

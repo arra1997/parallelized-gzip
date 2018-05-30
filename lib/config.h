@@ -136,7 +136,7 @@
 /* #undef DOUBLE_SLASH_IS_DISTINCT_ROOT */
 
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
-#define FCNTL_DUPFD_BUGGY 1
+/* #undef FCNTL_DUPFD_BUGGY */
 
 /* Define as the bit index in the word where to find bit 0 of the exponent of
    'float'. */
@@ -410,8 +410,7 @@
    may be supplied by this distribution. */
 #define HAVE_ALLOCA 1
 
-/* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
+/* Define to 1 if <alloca.h> works. */
 #define HAVE_ALLOCA_H 1
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
@@ -765,7 +764,8 @@
 /* Define to 1 if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H 1
 
-/* Define to 1 if you have the <string.h> header file. */
+/* Always define to 1, for backward compatibility. You can assume <string.h>
+   exists. */
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strnlen' function. */
@@ -886,10 +886,10 @@
 #define HAVE_WORKING_O_NOATIME 0
 
 /* Define to 1 if O_NOFOLLOW works. */
-#define HAVE_WORKING_O_NOFOLLOW 1
+#define HAVE_WORKING_O_NOFOLLOW 0
 
 /* Define if utimes works properly. */
-#define HAVE_WORKING_UTIMES 1
+/* #undef HAVE_WORKING_UTIMES */
 
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
@@ -1009,7 +1009,7 @@
 #define PACKAGE_NAME "gzip"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "gzip UNKNOWN"
+#define PACKAGE_STRING "gzip 1.9"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "gzip"
@@ -1018,7 +1018,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "UNKNOWN"
+#define PACKAGE_VERSION "1.9"
 
 /* Define to the type that is the result of default argument promotions of
    type mode_t. */
@@ -1091,7 +1091,8 @@
 /* Define to 1 if the `S_IS*' macros in <sys/stat.h> do not work properly. */
 /* #undef STAT_MACROS_BROKEN */
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Always define to 1, for backward compatibility. You can assume the C90
+   standard headers exist. */
 #define STDC_HEADERS 1
 
 /* Define to 1 if strerror_r returns char *. */
@@ -1201,7 +1202,7 @@
 /* #undef USE_WINDOWS_THREADS */
 
 /* Version number of package */
-#define VERSION "UNKNOWN"
+#define VERSION "1.9"
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
