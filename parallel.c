@@ -392,11 +392,10 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   {
     job_q->head = job;
     job_q->tail = job;
-    job->next = NULL;
-    ++job_q->len;
+  } else {
+    job_q->tail->next = job;
+    job_q->tail = job;  
   }
-  job_q->tail->next = job;
-  job_q->tail = job;
   job->next = NULL;
   ++job_q->len;
   increment_lock(job_q->active);
