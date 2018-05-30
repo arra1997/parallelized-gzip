@@ -182,12 +182,11 @@ void free_pool(pool_t* pool)
 {
   space_t *space;
   get_lock(pool->safe);
-  do
-    {
+  while(pool->head != NULL) {
       space = pool->head;
       pool->head = space->next;
       free_space(space);
-    } while (pool->head != NULL);
+  }
   free_lock(pool->safe);
   free_lock(pool->have);
   free(pool);
