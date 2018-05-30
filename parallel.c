@@ -30,6 +30,7 @@ struct lock_t
 };
 
 
+
 lock_t *new_lock(unsigned int users, int fixed_size)
 {
   lock_t *lock;
@@ -472,8 +473,7 @@ void *compress_thread(void *(opts)) {
   for (;;) {
     // Get a job
     job = get_job_bgn(job_queue);
-    assert(job != NULL);
-    if (job->seq == -1)
+    if (job == NULL)
       break;
 
     // Initialize and set compression level.
