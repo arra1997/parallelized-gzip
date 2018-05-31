@@ -141,6 +141,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   free_pool (input_pool);
   free_pool (output_pool);
   free_pool (dict_pool);
+  //sigabort because of free_job_queue()
   free_job_queue (job_queue);
   free_job_queue (write_job_queue);
   free_compress_options (c_opts);
