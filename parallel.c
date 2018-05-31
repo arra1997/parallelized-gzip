@@ -8,6 +8,7 @@
 #include "utils.h"
 #include <stdint.h>
 #include <string.h>
+#include <signal.h>
 
 
 // Sliding dictionary size for deflate.
@@ -271,9 +272,11 @@ struct job_queue_t
   int len;         // length of job linked list
   lock_t *active;
   lock_t *use;
+  sig_atomic_t num_threads;
+  int closed;
 };
 
-job_queue_t* new_job_queue ()
+job_queue_t* new_job_queue (int num_threads)
 {
   job_queue_t *job_q = Malloc (sizeof(job_queue_t));
   job_q->head = NULL;
@@ -281,13 +284,20 @@ job_queue_t* new_job_queue ()
   job_q->len = 0;
   job_q->use = new_lock (1, 1);
   job_q->active = new_lock (0, 0);
+  job_q->num_threads = num_threads;
+  job_q->closed = 0;
   return job_q;
 }
 
 void close_job_queue (job_queue_t *job_q)
 {
   get_lock(job_q->use);
-  increment_lock(job_q->active);
+  --job_q->num_threads;
+  if (job_q->num_threads == 0)
+    {
+      job_q->closed = 1;
+      increment_lock(job_q->active);
+    }
   release_lock(job_q->use);
 }
 
@@ -344,6 +354,10 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
             break;
         }
 
+        if(job_q->closed) {
+            return NULL;
+        }
+
         prev = cur;
         cur = cur->next;
     }
@@ -394,7 +408,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
     job_q->tail = job;
   } else {
     job_q->tail->next = job;
-    job_q->tail = job;  
+    job_q->tail = job;
   }
   job->next = NULL;
   ++job_q->len;

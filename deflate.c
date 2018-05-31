@@ -84,8 +84,8 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   write_opts *w_opts;
   pthread_t *pthread_array;
 
-  job_queue = new_job_queue ();
-  write_job_queue = new_job_queue ();
+  job_queue = new_job_queue (1);
+  write_job_queue = new_job_queue (processes);
   input_pool = new_pool (block_size, 2*processes);
   output_pool = new_pool (block_size, 2*processes);
   dict_pool = new_pool (DICT, 2*processes);
