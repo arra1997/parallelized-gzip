@@ -127,6 +127,7 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
     	}
 
       prev_job = job;
+      add_job_end(job_queue, prev_job);
       ++seq;
     }
   close_job_queue (job_queue);

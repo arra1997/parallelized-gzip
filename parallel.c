@@ -385,6 +385,10 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
     }
 }
 
+int is_job_queue_closed(job_queue_t* job_q) {
+    return job_q->closed;
+}
+
 //add a job to the beginning of the job queue
 void add_job_bgn (job_queue_t *job_q, job_t *job)
 {
@@ -486,8 +490,12 @@ void *compress_thread(void *(opts)) {
   for (;;) {
     // Get a job
     job = get_job_bgn(job_queue);
-    if (job == NULL)
+    if (job == NULL && is_job_queue_closed(job_queue))
       break;
+
+    if(job == NULL) {
+        continue;
+    }
 
     // Initialize and set compression level.
     (void)deflateReset(&strm);
