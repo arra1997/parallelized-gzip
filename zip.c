@@ -139,7 +139,7 @@ int zip(in, out)
     //header_bytes += 2*4;
 
     char name[16] = "compressed_file";
-    deflate_file_parallel(in, out, 128*128, 4, level, name, 0);
+    deflate_file_parallel(in, out, 1024*128, 4, level, name, 0);
 
 
     return OK;
