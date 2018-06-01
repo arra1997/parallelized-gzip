@@ -182,12 +182,12 @@ void free_pool(pool_t* pool)
 {
   space_t *space;
   get_lock(pool->safe);
-  do
+  while(pool->head != NULL)
     {
       space = pool->head;
       pool->head = space->next;
       free_space(space);
-    } while (pool->head != NULL);
+    } 
   free_lock(pool->safe);
   free_lock(pool->have);
   free(pool);
@@ -338,19 +338,21 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
     job_t* prev = NULL;
     job_t* cur = job_q->head;
-    while(1)
+    int keep_looking = 1;
+    while(keep_looking)
       {
+	if (job_q->closed)
+	  keep_looking = 0;
+	
         if(cur == NULL) {
             prev = NULL;
             cur = job_q->head;
+	    continue;
         }
 
         if(cur->seq == seq) {
             break;
         }
-
-	if (job_q->closed)
-	  return NULL;
 
         prev = cur;
         cur = cur->next;
@@ -401,11 +403,12 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   {
     job_q->head = job;
     job_q->tail = job;
-    job->next = NULL;
-    ++job_q->len;
   }
-  job_q->tail->next = job;
-  job_q->tail = job;
+  else
+  {
+    job_q->tail->next = job;
+    job_q->tail = job;
+  }
   job->next = NULL;
   ++job_q->len;
   increment_lock(job_q->active);
@@ -482,8 +485,7 @@ void *compress_thread(void *(opts)) {
   for (;;) {
     // Get a job
     job = get_job_bgn(job_queue);
-    assert(job != NULL);
-    if (job->seq == -1)
+    if (job == NULL)
       break;
 
     // Initialize and set compression level.
