@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <config.h>
 #include <errno.h>
 #include <pthread.h>
@@ -284,9 +285,11 @@ void close_job_queue (job_queue_t *job_q)
 {
   get_lock(job_q->use);
   --job_q->num_threads;
+  fprintf(stderr,"Decremented job queue!");
   if (job_q->num_threads == 0)
     {
       job_q->closed = 1;
+      fprintf(stderr,"Closed job queue!");
       increment_lock(job_q->active);
     }
   release_lock(job_q->use);
@@ -294,14 +297,9 @@ void close_job_queue (job_queue_t *job_q)
 
 void free_job_queue (job_queue_t *job_q)// not thread safe
 {
-  while (job_q->head != NULL)
-  {
-    job_t *temp = job_q->head;
-    job_q->head = job_q->head->next;
-    free_job (temp);
-  }
   free_lock(job_q->active);
   free_lock(job_q->use);
+  free(job_q);
 }
 
 
@@ -333,25 +331,22 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
 {
     job_t* prev = NULL;
     job_t* cur = job_q->head;
-    int keep_looking = 1;
-    while(keep_looking)
+    while(1)
       {
-	
         if(cur == NULL)
 	  {
             prev = NULL;
             cur = job_q->head;
 	    continue;
 	  }
-
+	printf("Looking at seq %ld and looking for seq %d\n", cur->seq, seq);
+	printf( "%d", job_q->len);
         if(cur->seq == seq)
 	  {
             break;
 	  }
-
         prev = cur;
         cur = cur->next;
-	
       }
 
     get_lock(job_q->active);
@@ -409,7 +404,6 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   increment_lock(job_q->active);
   release_lock(job_q->use);
 }
-
 
 
 struct compress_options {
@@ -500,14 +494,13 @@ void *compress_thread(void *(opts)) {
     uLong crc = crc32_z(0L, Z_NULL, 0);
     crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
     job->check = crc;
-
     // insert write job in list in sorted order, alert write thread
-
-    add_job_end(write_q, job);
-    
+    fprintf(stderr,"Adding job with seq %ld", job->seq);
+    add_job_bgn(write_q, job);
   }
 
   // found job with seq == -1 -- return to join
+  close_job_queue(write_q);
   (void)deflateEnd(&strm);
   return NULL;
 }
@@ -631,7 +624,7 @@ void* write_thread(void *opts) {
     int level;
     struct job_t* job;
     size_t input_len;
-    //int more;
+    int more = 1;
     length_t ulen;
     length_t clen;
     unsigned long check;
@@ -649,19 +642,22 @@ void* write_thread(void *opts) {
     check = crc32_z(0L, Z_NULL, 0);
     seq = 0;
 
-    do {
-        job = get_job_bgn(jobqueue);
-
+    while (more)
+      {
+        job = get_job_seq(jobqueue, seq);
+	printf("Got job with sequence number %ld", job->seq);
+	if (job == NULL)
+	  break;
         input_len = job->in->len;
         ulen += input_len;
         clen += job->out->len;
-
+	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
-        check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
+        //check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
         free_job(job);
         seq++;
-    } while (job!=NULL);
-
+      }
+    check = 0;
     put_trailer(outfd, ulen, check);
     return NULL;
 }
