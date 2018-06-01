@@ -285,11 +285,11 @@ void close_job_queue (job_queue_t *job_q)
 {
   get_lock(job_q->use);
   --job_q->num_threads;
-  fprintf(stderr,"Decremented job queue!");
+  //fprintf(stderr,"Decremented job queue!");
   if (job_q->num_threads == 0)
     {
       job_q->closed = 1;
-      fprintf(stderr,"Closed job queue!");
+      //fprintf(stderr,"Closed job queue!");
       increment_lock(job_q->active);
     }
   release_lock(job_q->use);
@@ -327,8 +327,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
 }
 
 //get a job from the queue that has the same sequece number as seq
-
-static job_t *search_job_queue(job_queue_t *job_q, long seq)
+static job_t __attribute__((optimize("O0"))) *search_job_queue (job_queue_t *job_q, long seq)
 {
   if (job_q == NULL)
     return NULL;
@@ -339,10 +338,12 @@ static job_t *search_job_queue(job_queue_t *job_q, long seq)
 	break;
       search = search->next;
     }
+  /*
   if (search == NULL)
     printf("Not found\n");
   else
     printf("Found\n");
+  */
   return search;
 }
 
@@ -355,7 +356,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
       keep_looking = !job_q->closed;
       result = search_job_queue(job_q, seq);
       if (!keep_looking)
-	return NULL;
+        return NULL;
     } while (result == NULL);
 
   get_lock(job_q->use);
@@ -555,7 +556,7 @@ void *compress_thread(void *(opts)) {
     crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
     job->check = crc;
     // insert write job in list in sorted order, alert write thread
-    fprintf(stderr,"Adding job with seq %ld", job->seq);
+    //fprintf(stderr,"Adding job with seq %ld", job->seq);
     add_job_bgn(write_q, job);
   }
 
@@ -696,23 +697,23 @@ void* write_thread(void *opts) {
     mtime = w_opts->mtime;
     level = w_opts->level;
 
-    put_header(outfd, name, mtime, level);
 
+    put_header(outfd, name, mtime, level);
     ulen = clen = 0;
     check = crc32_z(0L, Z_NULL, 0);
     seq = 0;
 
     while (more)
       {
-        job = get_job_seq(jobqueue, seq);
-	if (job!=NULL)
-	  printf("Got job with sequence number %ld", job->seq);
+        job = get_job_seq(jobqueue, seq);//
+	//if (job!=NULL)
+	  //printf("Got job with sequence number %ld", job->seq);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
         ulen += input_len;
         clen += job->out->len;
-	more = job->more;
+	      more = job->more;
         writen(outfd, job->out->buf, job->out->len);
         check = crc32_combine(check, job->check, job->in->len);
         free_job(job);
