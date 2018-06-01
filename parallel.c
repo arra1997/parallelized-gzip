@@ -63,8 +63,7 @@ void release_lock(lock_t* lock)
 
 void increment_lock(lock_t* lock)
 {
-  if (lock->fixed_size)
-    return;
+  assert(lock->fixed_size == 0);
   assert(sem_post(lock->semaphore) == 0);
 }
 
@@ -115,12 +114,12 @@ void free_space(space_t *space)
 // Pool of spaces (one pool for each type needed).
 struct pool_t
 {
-  lock_t *have;           // unused spaces available, for list
-  lock_t *safe;           //ensures safe use of pool in multithreaded environment
-  space_t *head;     // linked list of available buffers
-  size_t size;            // size of new buffers in this pool
-  int limit;              // number of new spaces allowed
-  int made;               // number of buffers made
+  lock_t *have;     // unused spaces available, for list
+  lock_t *safe;     //ensures safe use of pool in multithreaded environment
+  space_t *head;    // linked list of available buffers
+  size_t size;      // size of new buffers in this pool
+  int limit;        // number of new spaces allowed
+  int made;         // number of buffers made
 };
 
 pool_t *new_pool(size_t size, int limit) {
@@ -181,7 +180,6 @@ void drop_space(space_t* space)
 void free_pool(pool_t* pool)
 {
   space_t *space;
-  get_lock(pool->safe);
   while(pool->head != NULL)
     {
       space = pool->head;
@@ -296,14 +294,14 @@ void close_job_queue (job_queue_t *job_q)
 
 void free_job_queue (job_queue_t *job_q)// not thread safe
 {
-  get_lock(job_q->use);
   while (job_q->head != NULL)
   {
     job_t *temp = job_q->head;
     job_q->head = job_q->head->next;
     free_job (temp);
   }
-  release_lock(job_q->use);
+  free_lock(job_q->active);
+  free_lock(job_q->use);
 }
 
 
@@ -331,30 +329,30 @@ job_t *get_job_bgn (job_queue_t *job_q)
 }
 
 //get a job from the queue that has the same sequece number as seq
-job_t* get_job_seq (job_queue_t* job_q, int seq) {
-
+job_t* get_job_seq (job_queue_t* job_q, int seq)
+{
     job_t* prev = NULL;
     job_t* cur = job_q->head;
     int keep_looking = 1;
     while(keep_looking)
       {
-	if (job_q->closed)
-	  keep_looking = 0;
 	
-        if(cur == NULL) {
+        if(cur == NULL)
+	  {
             prev = NULL;
             cur = job_q->head;
 	    continue;
-        }
+	  }
 
-        if(cur->seq == seq) {
+        if(cur->seq == seq)
+	  {
             break;
-        }
+	  }
 
         prev = cur;
         cur = cur->next;
 	
-    }
+      }
 
     get_lock(job_q->active);
     get_lock(job_q->use);
