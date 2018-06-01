@@ -714,7 +714,7 @@ void* write_thread(void *opts) {
         clen += job->out->len;
 	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
-        //check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
+        check = crc32_combine(check, job->check, job->in->len);
         free_job(job);
         seq++;
       }
