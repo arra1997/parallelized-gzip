@@ -257,7 +257,8 @@ int load_job (job_t *job, int input_fd)
 
 void free_job (job_t *job)
 {
-  free(job->dict);
+  //free(job->dict);
+  drop_space(job->dict);
   free_space(job->in);
   free_space(job->out);
   //free_space(job->lens);
@@ -680,7 +681,7 @@ void* write_thread(void *opts) {
         drop_space(job->out);
 
         check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
-        free(job);
+        free_job(job);
         seq++;
     } while (more);
 
