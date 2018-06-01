@@ -107,10 +107,10 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   // Populate jobs add to job queue
   while(1)
     {
-      job = new_job (seq, input_pool, output_pool, NULL);
+      job = new_job (seq, input_pool, output_pool);
 
       if (load_job (job, input_fd)  == 0)
-	    {
+	{
     	  if (prev_job != NULL)
     	    {
     	      set_last_job (prev_job);
@@ -118,12 +118,12 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
     	    }
     	  free_job (job);
     	  break;
-	    }
+	}
 
       else if (prev_job != NULL)
     	{
     	  set_dictionary (prev_job, job, dict_pool);
-    	  add_job_end (job_queue, prev_job);
+	  add_job_end (job_queue, prev_job);
     	}
 
       prev_job = job;

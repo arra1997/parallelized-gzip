@@ -204,7 +204,6 @@ struct job_t
   int more;                   // true if this is not the last chunk
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
-  space_t *lens;              // coded list of flush block lengths
   space_t *dict;
   unsigned long check;        // check value for input data
   lock_t *calc;                 // released when check calculation complete
@@ -212,14 +211,13 @@ struct job_t
 };
 
 
-job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool)
+job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool)
 {
   job_t *job = Malloc(sizeof(job_t));
   job->seq = seq;
   job->more = 1;
   job->in = get_space(in_pool);
   job->out = get_space(out_pool);
-  job->lens = get_space(lens_pool);
   job->dict = NULL;
   job->check = 0;
   job->calc = new_lock(1, 1);
@@ -253,10 +251,9 @@ int load_job (job_t *job, int input_fd)
 
 void free_job (job_t *job)
 {
-  free(job->dict);
-  free_space(job->in);
-  free_space(job->out);
-  free_space(job->lens);
+  drop_space(job->dict);
+  drop_space(job->in);
+  drop_space(job->out);
   free(job->calc);
   free(job);
 }
@@ -659,15 +656,12 @@ void* write_thread(void *opts) {
 
         more = job->more;
         input_len = job->in->len;
-        drop_space(job->in);
         ulen += input_len;
         clen += job->out->len;
 
         writen(outfd, job->out->buf, job->out->len);
-        drop_space(job->out);
-
         check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
-        free(job);
+        free_job(job);
         seq++;
     } while (more);
 

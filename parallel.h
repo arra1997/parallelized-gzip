@@ -29,7 +29,7 @@ space_t *get_space(pool_t *pool);
 void drop_space(space_t* space);
 void free_pool(pool_t* pool);
 
-job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool, pool_t *lens_pool);
+job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool);
 void set_last_job (job_t *job);
 int load_job (job_t *job, int input_fd);
 void free_job (job_t *job);
