@@ -327,7 +327,63 @@ job_t *get_job_bgn (job_queue_t *job_q)
 }
 
 //get a job from the queue that has the same sequece number as seq
+
+job_t *search_job_queue(job_queue_t *job_q, long seq)
+{
+  if (job_q == NULL)
+    return NULL;
+  job_t *search = job_q->head;
+  while (search != NULL)
+    {
+      if (search->seq == seq)
+	break;
+      search = search->next;
+    }
+  if (search == NULL)
+    printf("Not found\n");
+  else
+    printf("Found\n");
+  return search;
+}
+
 job_t* get_job_seq (job_queue_t* job_q, int seq)
+{
+  int keep_looking = 1;
+  job_t *result, *prev;
+  do
+    {
+      keep_looking = !job_q->closed;
+      result = search_job_queue(job_q, seq);
+      if (!keep_looking)
+	return NULL;
+    } while (result == NULL);
+
+  get_lock(job_q->use);
+  prev = NULL;
+  result = job_q->head;
+  while (result!=NULL && result->seq != seq)
+    {
+      prev = result;
+      result = result->next;
+    }
+  assert (result != NULL);
+  if (prev == NULL)
+    {
+      job_q->head = result->next;
+    }
+  else
+    {
+      prev->next = result->next;
+    }
+  --job_q->len;
+  release_lock(job_q->use);
+  result->next = NULL;
+  
+  return result;
+}
+
+
+/*job_t* get_job_seq (job_queue_t* job_q, int seq)
 {
     job_t* prev = NULL;
     job_t* cur = job_q->head;
@@ -371,6 +427,9 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
         return cur;
     }
 }
+*/
+
+
 
 //add a job to the beginning of the job queue
 void add_job_bgn (job_queue_t *job_q, job_t *job)
@@ -391,6 +450,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   get_lock(job_q->use);
   if (job_q->tail == NULL)
   {
+    assert(job_q->head == NULL);
     job_q->head = job;
     job_q->tail = job;
   }
@@ -645,7 +705,8 @@ void* write_thread(void *opts) {
     while (more)
       {
         job = get_job_seq(jobqueue, seq);
-	printf("Got job with sequence number %ld", job->seq);
+	if (job!=NULL)
+	  printf("Got job with sequence number %ld", job->seq);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
@@ -657,7 +718,6 @@ void* write_thread(void *opts) {
         free_job(job);
         seq++;
       }
-    check = 0;
     put_trailer(outfd, ulen, check);
     return NULL;
 }
