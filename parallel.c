@@ -328,7 +328,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
 
 //get a job from the queue that has the same sequece number as seq
 
-job_t *search_job_queue(job_queue_t *job_q, long seq)
+static job_t *search_job_queue(job_queue_t *job_q, long seq)
 {
   if (job_q == NULL)
     return NULL;
