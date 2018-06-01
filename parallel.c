@@ -631,7 +631,7 @@ void* write_thread(void *opts) {
     int level;
     struct job_t* job;
     size_t input_len;
-    int more;
+    //int more;
     length_t ulen;
     length_t clen;
     unsigned long check;
@@ -650,9 +650,8 @@ void* write_thread(void *opts) {
     seq = 0;
 
     do {
-        job = get_job_seq(jobqueue, seq);
+        job = get_job_bgn(jobqueue);
 
-        more = job->more;
         input_len = job->in->len;
         ulen += input_len;
         clen += job->out->len;
@@ -661,7 +660,7 @@ void* write_thread(void *opts) {
         check = crc32_z(check, (unsigned char*)(&(job->check)), input_len);
         free_job(job);
         seq++;
-    } while (more);
+    } while (job!=NULL);
 
     put_trailer(outfd, ulen, check);
     return NULL;
