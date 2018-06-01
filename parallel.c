@@ -259,8 +259,8 @@ void free_job (job_t *job)
 {
   //free(job->dict);
   drop_space(job->dict);
-  free_space(job->in);
-  free_space(job->out);
+  drop_space(job->in);
+  drop_space(job->out);
   //free_space(job->lens);
   free(job->calc);
   free(job);
