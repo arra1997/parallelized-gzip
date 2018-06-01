@@ -343,6 +343,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
         if(cur == NULL) {
             prev = NULL;
             cur = job_q->head;
+            continue;
         }
 
         if(cur->seq == seq) {
@@ -354,7 +355,7 @@ job_t* get_job_seq (job_queue_t* job_q, int seq) {
 
         prev = cur;
         cur = cur->next;
-	
+
     }
 
     get_lock(job_q->active);
@@ -507,7 +508,7 @@ void *compress_thread(void *(opts)) {
     // insert write job in list in sorted order, alert write thread
 
     add_job_end(write_q, job);
-    
+
   }
 
   // found job with seq == -1 -- return to join
