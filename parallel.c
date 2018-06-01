@@ -497,6 +497,10 @@ void *compress_thread(void *(opts)) {
         continue;
     }
 
+    // if(job == NULL) {
+    //     break;
+    // }
+
     // Initialize and set compression level.
     (void)deflateReset(&strm);
     (void)deflateParams(&strm, level, Z_DEFAULT_STRATEGY);

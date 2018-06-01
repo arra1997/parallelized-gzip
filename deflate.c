@@ -123,11 +123,10 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
       else if (prev_job != NULL)
     	{
     	  set_dictionary (prev_job, job, dict_pool);
-    	  add_job_end (job_queue, prev_job);
+          add_job_end (job_queue, prev_job);
     	}
 
       prev_job = job;
-      add_job_end(job_queue, prev_job);
       ++seq;
     }
   close_job_queue (job_queue);
