@@ -39,7 +39,7 @@ int zip(in, out)
 //     uch  flags = 0;         /* general purpose bit flags */
     ush  attr = 0;          /* ascii/binary flag */
 //     ush  deflate_flags = 0; /* pkzip -es, -en or -ex equivalent */
-    //ulg  stamp;
+    // ulg  stamp;
 
 //     ifd = in;
 //     ofd = out;
@@ -56,17 +56,19 @@ int zip(in, out)
 //         flags |= ORIG_NAME;
 //     }
 //     put_byte(flags);         /* general flags */
-    // if (time_stamp.tv_nsec < 0)
-    //   stamp = 0;
-    // else if (0 < time_stamp.tv_sec && time_stamp.tv_sec <= 0xffffffff)
-    //   stamp = time_stamp.tv_sec;
-    // else
-    //   {
-    //     /* It's intended that timestamp 0 generates this warning,
-    //        since gzip format reserves 0 for something else.  */
-    //     warning ("file timestamp out of range for gzip format");
-    //     stamp = 0;
-    //   }
+    if (time_stamp.tv_nsec < 0)
+      ;
+      // stamp = 0;
+    else if (0 < time_stamp.tv_sec && time_stamp.tv_sec <= 0xffffffff)
+      // stamp = time_stamp.tv_sec;
+      ;
+    else
+      {
+        /* It's intended that timestamp 0 generates this warning,
+           since gzip format reserves 0 for something else.  */
+        warning ("file timestamp out of range for gzip format");
+        // stamp = 0;
+      }
 //     put_long (stamp);
 
 //     /* Write deflated file to zip file */

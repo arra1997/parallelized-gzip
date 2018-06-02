@@ -198,6 +198,7 @@ static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
        int processes = 1;
+       int temp_fd;
 
 /* The original timestamp (modification time).  If the original is
    unknown, TIME_STAMP.tv_nsec is negative.  If the original is
@@ -793,22 +794,25 @@ local void treat_stdin()
     part_nb = 0;
     ifd = STDIN_FILENO;
     stdin_was_read = true;
-
-    // if (decompress) {
-    //     method = get_method(ifd);
-    //     if (method < 0) {
-    //         do_exit(exit_code);  //error message already emitted 
-    //     }
-    // }
+    if (decompress) {
+        temp_fd = open("tempfd", O_RDWR | O_CREAT);
+        method = get_method(ifd);
+        if (method < 0) {
+            do_exit(exit_code);  //error message already emitted 
+        }
+    }
     if (list) {
         do_list(ifd, method);
         return;
     }
     /* Actually do the compression/decompression. Loop over zipped members.
      */
-    method = 8;
-    if (decompress)
-      work = unzip;
+
+    while (input_eof() == 0)
+    {
+      if (fill_inbuf(1) == EOF)
+        inptr = insize;
+    }
     for (;;) {
         if (work (STDIN_FILENO, STDOUT_FILENO) != OK)
           return;
@@ -816,11 +820,11 @@ local void treat_stdin()
         if (input_eof ())
           break;
 
-        // method = get_method(ifd);
-        // if (method < 0) return; /* error message already emitted */
+        method = get_method(ifd);
+        if (method < 0) return; /* error message already emitted */
         bytes_out = 0;            /* required for length check */
     }
-
+    unlink("tempfd");
     if (verbose) {
         if (test) {
             fprintf(stderr, " OK\n");

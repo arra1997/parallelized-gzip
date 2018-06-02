@@ -219,9 +219,18 @@ int unzip(in, out)
         if (ret == -1)
           exit (EXIT_FAILURE);
       }
+    else
+      {
+        off_t ret = lseek (temp_fd, 0, SEEK_SET);
+        if (ret == -1)
+            exit (EXIT_FAILURE);
+      }
     bytes_in = 0;
     bytes_out = 0;
-    inflate_file (in, out, &bytes_in, &bytes_out);
+    if (in != STDIN_FILENO)
+        inflate_file (in, out, &bytes_in, &bytes_out);
+    else
+        inflate_file (temp_fd, out, &bytes_in, &bytes_out);
     inptr = insize;
     return OK;
 }
