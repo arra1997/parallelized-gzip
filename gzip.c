@@ -175,6 +175,7 @@ static int ascii = 0;        /* convert end-of-lines to local OS conventions */
 static int decompress = 0;   /* decompress (-d) */
 static int force = 0;        /* don't ask questions, compress links (-f) */
 static int keep = 0;         /* keep (don't delete) input files */
+       int independent = 0;
 static int no_name = -1;     /* don't save or restore the original file name */
 static int no_time = -1;     /* don't save or restore the original file time */
 static int recursive = 0;    /* recurse through directories (-r) */
@@ -270,7 +271,7 @@ enum
   ENV_OPTION
 };
 
-static char const shortopts[] = "ab:cdfhH?klLmMnNpqrS:tvVZ123456789";
+static char const shortopts[] = "ab:cdfhHi?klLmMnNpqrS:tvVZ123456789";
 
 static const struct option longopts[] =
 {
@@ -283,6 +284,7 @@ static const struct option longopts[] =
  /* {"encrypt",    0, 0, 'e'},    encrypt */
     {"force",      0, 0, 'f'}, /* force overwrite of output file */
     {"help",       0, 0, 'h'}, /* give help */
+    {"independent", 0, 0, 'i'},
  /* {"pkzip",      0, 0, 'k'},    force output in pkzip format */
     {"keep",       0, 0, 'k'}, /* keep (don't delete) input files */
     {"list",       0, 0, 'l'}, /* list .gz file contents */
@@ -364,6 +366,7 @@ local void help()
 /*  -e, --encrypt     encrypt */
  "  -f, --force       force overwrite of output file and compress links",
  "  -h, --help        give this help",
+ "  -i, --independent compress blocks independently for damage recovery" ,
 /*  -k, --pkzip       force output in pkzip format */
  "  -k, --keep        keep (don't delete) input files",
  "  -l, --list        list compressed file contents",
@@ -386,7 +389,7 @@ local void help()
  "  -V, --version     display version number",
  "  -1, --fast        compress faster",
  "  -9, --best        compress better",
- "  -p, --processes n    Allow up to n compression threads",
+ "  -p, --processes=n allow up to n compression threads",
 #ifdef LZW
  "  -Z, --lzw         produce output compatible with old compress",
  "  -b, --bits=BITS   max number of bits per code (implies -Z)",
@@ -541,6 +544,8 @@ int main (int argc, char **argv)
             force++; break;
         case 'h': case 'H':
             help (); finish_out (); break;
+	case 'i':
+    	    independent = 1; break;
         case 'k':
             keep = 1; break;
         case 'l':

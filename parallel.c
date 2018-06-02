@@ -11,7 +11,6 @@
 #include <string.h>
 #include <signal.h>
 
-
 // Sliding dictionary size for deflate.
 #define DICT 32768U
 // Largest power of 2 that fits in an unsigned int. Used to limit requests to

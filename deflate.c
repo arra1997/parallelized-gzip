@@ -28,6 +28,7 @@
 #include "stdlib.h"
 #include "deflate.h"
 #include "parallel.h"
+#include "gzip.h"
 
 #define DICT 32768U
 
@@ -88,7 +89,10 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   write_job_queue = new_job_queue (processes);
   input_pool = new_pool (block_size, 2*processes);
   output_pool = new_pool (block_size, 2*processes);
-  dict_pool = new_pool (DICT, 2*processes);
+  if (!independent)
+      dict_pool = new_pool (DICT, 2*processes);
+  else
+      dict_pool = NULL;
   seq = 0;
   prev_job = job = NULL;
 
@@ -122,7 +126,8 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 
       else if (prev_job != NULL)
     	{
-    	  set_dictionary (prev_job, job, dict_pool);
+	  if (!independent)
+	    set_dictionary (prev_job, job, dict_pool);
 	  add_job_end (job_queue, prev_job);
     	}
 
@@ -139,7 +144,8 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 
   free_pool (input_pool);
   free_pool (output_pool);
-  free_pool (dict_pool);
+  if (!independent)
+    free_pool (dict_pool);
   free_job_queue (job_queue);
   free_job_queue (write_job_queue);
   free_compress_options (c_opts);
