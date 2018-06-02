@@ -353,10 +353,10 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
   job_t *result, *prev;
   do
     {
-      keep_looking = !job_q->closed;
-      result = search_job_queue(job_q, seq);
       if (!keep_looking)
         return NULL;
+      keep_looking = !job_q->closed;
+      result = search_job_queue(job_q, seq);
     } while (result == NULL);
 
   get_lock(job_q->use);
@@ -705,15 +705,13 @@ void* write_thread(void *opts) {
 
     while (more)
       {
-        job = get_job_seq(jobqueue, seq);//
-	//if (job!=NULL)
-	  //printf("Got job with sequence number %ld", job->seq);
+        job = get_job_seq(jobqueue, seq);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
         ulen += input_len;
         clen += job->out->len;
-	      more = job->more;
+	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
         check = crc32_combine(check, job->check, job->in->len);
         free_job(job);
