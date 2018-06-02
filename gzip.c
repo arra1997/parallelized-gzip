@@ -197,7 +197,7 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
-       int threads;
+       int processes;
 
 /* The original timestamp (modification time).  If the original is
    unknown, TIME_STAMP.tv_nsec is negative.  If the original is
@@ -565,10 +565,10 @@ int main (int argc, char **argv)
         case PRESUME_INPUT_TTY_OPTION:
             presume_input_tty = true; break;
         case 'p':
-            threads = (int)*optarg;                   // # processes
-            if (threads < 1)
+            processes = (int)*optarg;                  
+            if (processes < 1)
                 exit(EXIT_FAILURE);
-            if (INBUFS(threads) < 1)
+            if (INBUFS(processes) < 1)
                 exit(EXIT_FAILURE);
             break;
         case 'q':
