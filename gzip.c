@@ -197,7 +197,7 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
-       int processes;
+       int processes = 1;
 
 /* The original timestamp (modification time).  If the original is
    unknown, TIME_STAMP.tv_nsec is negative.  If the original is
