@@ -566,7 +566,7 @@ int main (int argc, char **argv)
         case PRESUME_INPUT_TTY_OPTION:
             presume_input_tty = true; break;
         case 'p':
-            processes = (int)*optarg;                  
+            processes = atoi(optarg);                  
             if (processes < 1)
                 exit(EXIT_FAILURE);
             if (INBUFS(processes) < 1)
