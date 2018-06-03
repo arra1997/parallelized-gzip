@@ -252,7 +252,7 @@ void free_job (job_t *job)
   drop_space(job->dict);
   drop_space(job->in);
   drop_space(job->out);
-  free(job->calc);
+  free_lock(job->calc);
   free(job);
 }
 
