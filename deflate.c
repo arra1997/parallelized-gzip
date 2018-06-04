@@ -40,12 +40,6 @@
 #  define GZIP_ENCODING 16
 #endif
 
-#ifndef BUFFER_SIZE_DEFLATE
-#  define BUFFER_SIZE_DEFLATE 16384
-#endif
-
-
-
 /*
 strm_init(z_stream *strm, int level):
 this function sets the necessary flags and creates the necessary structures to
@@ -151,58 +145,5 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   free_compress_options (c_opts);
   free_write_options (w_opts);
   free (pthread_array);
-  return 0;
-}
-
-
-int deflate_file (int input_fd, int output_fd, long block_size, int level,
-  gz_header *header, off_t *read_bytes, off_t *write_bytes)
-{
-  int read_count;
-  int write_count;
-  z_stream strm;
-  strm_init (&strm, level);
-  int ret = deflateSetHeader (&strm, header);
-  if (ret != Z_OK)
-    exit (EXIT_FAILURE);
-  unsigned char *in = Calloc (BUFFER_SIZE_DEFLATE, sizeof (char));
-  unsigned char *out = Calloc (BUFFER_SIZE_DEFLATE, sizeof (char));
-  do
-    {
-      read_count = read (input_fd, in, BUFFER_SIZE_DEFLATE);
-      assert (read_count != -1);
-      *read_bytes += read_count;
-
-      if (read_count > 0)
-        {
-          strm.next_in = in;
-          strm.next_out = out;
-          strm.avail_in = read_count;
-          strm.avail_out = BUFFER_SIZE_DEFLATE;
-
-          //if we're at the end of the file, compress the last chunk using the Z_FINISH flag
-          if (read_count < BUFFER_SIZE_DEFLATE)
-            {
-              int ret = deflate (&strm, Z_FINISH);
-              assert (ret != Z_STREAM_ERROR);
-              write_count = write (output_fd, out, BUFFER_SIZE_DEFLATE - strm.avail_out);
-              assert (write_count != -1);
-              *write_bytes += write_count;
-              break;
-            }
-
-          //if not at the end of file, compress each chunk normally, using Z_SYNC_FLUSH
-          int ret = deflate (&strm, Z_SYNC_FLUSH);
-          assert (ret != Z_STREAM_ERROR);
-          write_count = write (output_fd, out, BUFFER_SIZE_DEFLATE - strm.avail_out);
-          assert (write_count != -1);
-          *write_bytes += write_count;
-        }
-    }
-  while (read_count > 0);
-
-  deflateEnd (&strm);
-  free (in);
-  free (out);
   return 0;
 }
