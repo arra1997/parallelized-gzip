@@ -81,10 +81,10 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
 
   job_queue = new_job_queue (1);
   write_job_queue = new_job_queue (processes);
-  input_pool = new_pool (block_size, 2*processes);
-  output_pool = new_pool (block_size, 2*processes);
+  input_pool = new_pool (block_size, processes+1);
+  output_pool = new_pool (block_size, processes+1);
   if (!independent)
-      dict_pool = new_pool (DICT, 2*processes);
+      dict_pool = new_pool (DICT, processes+1);
   else
       dict_pool = NULL;
   seq = 0;
