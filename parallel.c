@@ -13,16 +13,6 @@
 
 // Sliding dictionary size for deflate.
 #define DICT 32768U
-// Largest power of 2 that fits in an unsigned int. Used to limit requests to
-// zlib functions that use unsigned int lengths.
-// #define MAXP2 (UINT_MAX - (UINT_MAX >> 1))
-
-//TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
-struct {
-    int cthreads;
-    int procs;
-    int block;
-} g;
 
 struct lock_t
 {
@@ -119,7 +109,6 @@ struct pool_t
   space_t *head;    // linked list of available buffers
   size_t size;      // size of new buffers in this pool
   int limit;        // number of new spaces allowed
-  int made;         // number of buffers made
 };
 
 pool_t *new_pool(size_t size, int limit) {
@@ -130,7 +119,24 @@ pool_t *new_pool(size_t size, int limit) {
   pool->head = NULL;
   pool->size = size;
   pool->limit = limit;
-  pool->made = 0;
+
+  if (size <= 0)
+    return pool;
+
+  int i;
+  space_t *cur;
+  pool->head = new_space(pool->size);
+  i = 0;
+  cur = pool->head;
+  while(i < limit-1)
+    {
+      cur->pool = pool;
+      cur->next = new_space(pool->size);
+      cur = cur->next;
+      ++i;
+    }
+  cur->pool = pool;
+  cur->next = NULL;
   return pool;
 }
 
@@ -140,22 +146,9 @@ space_t *get_space(pool_t *pool)
   space_t *space;
   get_lock(pool->have);
   get_lock(pool->safe);
-
-  // if a space is available, pull it from the free list and return it
-  if (pool->head != NULL)
-    {
-      space = pool->head;
-      pool->head = space->next;
-      space->len = 0;
-      release_lock(pool->safe);
-      return space;
-    }
-
-  // create a new space
-  assert(pool->made != pool->limit);
-  pool->made++;
-  space = new_space(pool->size);
-  space->pool = pool;
+  space = pool->head;
+  pool->head = space->next;
+  space->len = 0;
   release_lock(pool->safe);
   return space;
 }
