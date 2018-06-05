@@ -824,7 +824,8 @@ local void treat_stdin()
         if (method < 0) return; /* error message already emitted */
         bytes_out = 0;            /* required for length check */
     }
-    unlink("tempfd");
+    if (decompress)
+      unlink("tempfd");
     if (verbose) {
         if (test) {
             fprintf(stderr, " OK\n");
