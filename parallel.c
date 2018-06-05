@@ -203,7 +203,7 @@ struct job_t
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
   space_t *dict;
-  unsigned long check;        // check value for input data
+  u_int32_t check;        // check value for input data
   lock_t *calc;                 // released when check calculation complete
   job_t *next;           // next job in the list (either list)
 };
@@ -551,8 +551,8 @@ void *compress_thread(void *(opts)) {
 
 
     //calculate check value
-    uLong crc = crc32_z(0L, Z_NULL, 0);
-    crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
+    u_int32_t crc = crc32_z(0L, Z_NULL, 0);
+    crc = crc32_z(crc, job->in->buf, job->in->len);
     job->check = crc;
     // insert write job in list in sorted order, alert write thread
     //fprintf(stderr,"Adding job with seq %ld", job->seq);
@@ -687,7 +687,7 @@ void* write_thread(void *opts) {
     int more = 1;
     length_t ulen;
     length_t clen;
-    unsigned long check;
+    u_int32_t final_check = crc32_z(0L, Z_NULL, 0);
 
     w_opts = (struct write_opts*) opts;
     jobqueue = w_opts->jobqueue;
@@ -699,12 +699,12 @@ void* write_thread(void *opts) {
 
     put_header(outfd, name, mtime, level);
     ulen = clen = 0;
-    check = crc32_z(0L, Z_NULL, 0);
     seq = 0;
 
     while (more)
       {
         job = get_job_seq(jobqueue, seq);
+	//printf("%u\n", job->check);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
@@ -712,10 +712,12 @@ void* write_thread(void *opts) {
         clen += job->out->len;
 	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
-        check = crc32_combine(check, job->check, job->in->len);
+        final_check = crc32_combine(final_check, job->check, job->in->len);
+	//printf("%u\n", final_check);
         free_job(job);
         seq++;
       }
-    put_trailer(outfd, ulen, check);
+    //printf("%u\n", final_check);
+    put_trailer(outfd, ulen, final_check);
     return NULL;
 }
