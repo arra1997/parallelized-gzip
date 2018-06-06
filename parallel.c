@@ -31,7 +31,6 @@ lock_t *new_lock(unsigned int users, int fixed_size)
   return lock;
 }
 
-
 // Destroy the lock.
 // This is not safe deletion. Only use this
 // when you know nobody needs the lock anymore.
@@ -57,7 +56,58 @@ void increment_lock(lock_t* lock)
   assert(sem_post(lock->semaphore) == 0);
 }
 
-// -- pool of spaces for buffer management --
+struct condition_t
+{
+  pthread_mutex_t *mutex;
+  pthread_cond_t *cond;
+  int ready;
+};
+
+condition_t* new_condition()
+{
+  condition_t *condition = Malloc (sizeof (condition_t));
+  condition->mutex = Malloc (sizeof (pthread_mutex_t));
+  condition->cond = Malloc (sizeof (pthread_cond_t));
+  assert(pthread_mutex_init(condition->mutex, NULL) == 0);
+  assert(pthread_cond_init(condition->cond, NULL) == 0);
+  condition->ready = 0;
+  return condition;
+}
+
+void wait_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  while (condition->ready == 0)
+    pthread_cond_wait (condition->cond, condition->mutex);
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void signal_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  condition-> ready = 1;
+  pthread_cond_signal (condition->cond);
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void reset_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  pthread_cond_destroy(condition->cond);
+  pthread_cond_init(condition->cond, NULL);
+  condition->ready = 0;
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void free_condition (condition_t *condition)
+{
+  free(condition->mutex);
+  free(condition->cond);
+  free(condition);
+}
+
+
+//-- pool of spaces for buffer management --
 
 // These routines manage a pool of spaces. Each pool specifies a fixed size
 // buffer to be contained in each space. Each space has a use count, which when
@@ -330,12 +380,6 @@ static job_t __attribute__((optimize("O0"))) *search_job_queue (job_queue_t *job
 	break;
       search = search->next;
     }
-  /*
-  if (search == NULL)
-    printf("Not found\n");
-  else
-    printf("Found\n");
-  */
   return search;
 }
 
@@ -374,54 +418,6 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
   
   return result;
 }
-
-
-/*job_t* get_job_seq (job_queue_t* job_q, int seq)
-{
-    job_t* prev = NULL;
-    job_t* cur = job_q->head;
-    while(1)
-      {
-        if(cur == NULL)
-	  {
-            prev = NULL;
-            cur = job_q->head;
-	    continue;
-	  }
-	printf("Looking at seq %ld and looking for seq %d\n", cur->seq, seq);
-	printf( "%d", job_q->len);
-        if(cur->seq == seq)
-	  {
-            break;
-	  }
-        prev = cur;
-        cur = cur->next;
-      }
-
-    get_lock(job_q->active);
-    get_lock(job_q->use);
-    if(prev == NULL) {
-        job_q->head = job_q->head->next;
-        if (job_q->head == NULL) {
-            job_q->tail = NULL;
-        }
-        --job_q->len;
-        cur->next = NULL;
-        release_lock(job_q->use);
-        return cur;
-    } else {
-        prev->next = cur->next;
-        if (job_q->head == NULL) {
-            job_q->tail = NULL;
-        }
-        --job_q->len;
-        cur->next = NULL;
-        release_lock(job_q->use);
-        return cur;
-    }
-}
-*/
-
 
 
 //add a job to the beginning of the job queue
@@ -697,7 +693,6 @@ void* write_thread(void *opts) {
     while (more)
       {
         job = get_job_seq(jobqueue, seq);
-	//printf("%u\n", job->check);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
@@ -706,11 +701,9 @@ void* write_thread(void *opts) {
 	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
         final_check = crc32_combine(final_check, job->check, job->in->len);
-	//printf("%u\n", final_check);
         free_job(job);
         seq++;
       }
-    //printf("%u\n", final_check);
     put_trailer(outfd, ulen, final_check);
     return NULL;
 }
