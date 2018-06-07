@@ -63,6 +63,7 @@ struct condition_t
   int ready;
 };
 
+
 condition_t* new_condition()
 {
   condition_t *condition = Malloc (sizeof (condition_t));
@@ -81,6 +82,15 @@ void wait_condition (condition_t *condition)
     pthread_cond_wait (condition->cond, condition->mutex);
   pthread_mutex_unlock (condition->mutex);
 }
+
+void broadcast_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  condition->ready = 1;
+  pthread_cond_broadcast(condition->cond);
+  pthread_mutex_unlock (condition->mutex);
+}
+
 
 void signal_condition (condition_t *condition)
 {
@@ -308,6 +318,7 @@ struct job_queue_t
   lock_t *use;
   sig_atomic_t num_threads;
   int closed;
+  condition_t *queue_update;
 };
 
 job_queue_t* new_job_queue (int num_threads)
@@ -320,6 +331,7 @@ job_queue_t* new_job_queue (int num_threads)
   job_q->active = new_lock (0, 0);
   job_q->num_threads = num_threads;
   job_q->closed = 0;
+  job_q->queue_update = new_condition();
   return job_q;
 }
 
@@ -327,11 +339,10 @@ void close_job_queue (job_queue_t *job_q)
 {
   get_lock(job_q->use);
   --job_q->num_threads;
-  //fprintf(stderr,"Decremented job queue!");
   if (job_q->num_threads == 0)
     {
       job_q->closed = 1;
-      //fprintf(stderr,"Closed job queue!");
+      broadcast_condition(job_q->queue_update);
       increment_lock(job_q->active);
     }
   release_lock(job_q->use);
@@ -369,7 +380,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
 }
 
 //get a job from the queue that has the same sequece number as seq
-static job_t __attribute__((optimize("O0"))) *search_job_queue (job_queue_t *job_q, long seq)
+__attribute__ ((pure)) static job_t  *search_job_queue (job_queue_t *job_q, long seq) 
 {
   if (job_q == NULL)
     return NULL;
@@ -391,8 +402,11 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
     {
       if (!keep_looking)
         return NULL;
+      wait_condition(job_q->queue_update);
       keep_looking = !job_q->closed;
       result = search_job_queue(job_q, seq);
+      if (keep_looking)
+	reset_condition(job_q->queue_update);
     } while (result == NULL);
 
   get_lock(job_q->use);
@@ -429,6 +443,7 @@ void add_job_bgn (job_queue_t *job_q, job_t *job)
   job->next = job_q->head;
   job_q->head = job;
   ++job_q->len;
+  signal_condition(job_q->queue_update);
   increment_lock(job_q->active);
   release_lock(job_q->use);
 }
@@ -450,6 +465,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   }
   job->next = NULL;
   ++job_q->len;
+  signal_condition(job_q->queue_update);
   increment_lock(job_q->active);
   release_lock(job_q->use);
 }

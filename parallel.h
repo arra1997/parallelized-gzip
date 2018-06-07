@@ -26,6 +26,7 @@ void free_lock(lock_t* lock);
 
 condition_t *new_condition(void);
 void wait_condition(condition_t *condition);
+void broadcast_condition(condition_t *condition);
 void signal_condition(condition_t *condition);
 void reset_condition(condition_t *condition);
 void free_condition(condition_t *condition);
