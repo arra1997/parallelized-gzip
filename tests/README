@@ -1,0 +1,24 @@
+--- Test Case Coverage ---
+Name of test file and description of its test case.
+
+1) gzip-env - Test the obsolescent GZIP environment variable.
+2) helin-segv - Before gzip-1.4, gzip -d would segfault on some inputs.
+3) help-version - Make sure gzip works when invoked with --help or --version
+4) hufts-segv - Exercise a bug whereby an invalid input could make gzip -d misbehave.
+5) keep - Exercise the --keep option.
+6) list - Exercise the --list option.
+7) memcpy-abuse - Before gzip-1.4, this the use of memcpy in inflate_codes could mistakenly operate on overlapping regions.  Exercise that code.
+8) mixed - Ensure that gzip -cdf handles mixed compressed/not-compressed data. Before gzip-1.5, it would produce invalid output.
+9) null-suffix-clobber - Before gzip-1.5, gzip -d -S '' k.gz would delete F.gz and not create "F"
+10) stdin - Ensure that gzip interprets "-" as stdin.
+11) timestamp - Exercise timestamps
+12) trailing-nul - gzip accepts trailing NUL bytes; don't fail if there is exactly one.
+13) unpack-invalid - gzip should report invalid 'unpack' input when uncompressing.
+14) unpack-valid - Test end-of-block check in unpack code
+15) upper-suffix - Ensure an upper-case user-specified suffix works as expected.
+16) z-suffix - Check that -Sz works.
+17) zdiff - Exercise zdiff with two compressed inputs.
+18) zgrep-f - Ensure that zgrep -f - works like grep -f -
+19) zgrep-content - Ensure that zgrep -15 works.
+20) zgrep-signal - Check that zgrep is terminated gracefully by signal when its grep/sed pipeline is terminated by a signal.
+21) znew-k - Check that znew -K works without compress(1)
