@@ -198,7 +198,7 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
-       int processes = get_nprocs();
+       int processes; 
        int temp_fd;
 
 /* The original timestamp (modification time).  If the original is
@@ -442,6 +442,7 @@ int main (int argc, char **argv)
     int env_argc;
     char **env_argv;
 
+    processes = get_nprocs();
     EXPAND(argc, argv); /* wild card expansion if necessary */
 
     program_name = gzip_base_name (argv[0]);
