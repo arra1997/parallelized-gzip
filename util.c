@@ -172,6 +172,12 @@ int fill_inbuf(eof_ok)
           read_error();
           break;
         }
+        if (ifd == STDIN_FILENO)
+        {
+          int ret = write(temp_fd, inbuf + insize, len);
+          if (ret <= 0)
+            exit(1);
+        }
         insize += len;
     } while (insize < INBUFSIZ);
 

@@ -1,4 +1,5 @@
 struct lock_t;
+struct condition_t;
 struct space_t;
 struct pool_t;
 struct job_t;
@@ -7,6 +8,7 @@ struct compress_options;
 struct write_opts;
 
 typedef struct lock_t lock_t;
+typedef struct condition_t condition_t;
 typedef struct space_t space_t;
 typedef struct pool_t pool_t;
 typedef struct job_t job_t;
@@ -21,6 +23,13 @@ void get_lock(lock_t* lock);
 void release_lock(lock_t* lock);
 void increment_lock(lock_t* lock);
 void free_lock(lock_t* lock);
+
+condition_t *new_condition(void);
+void wait_condition(condition_t *condition);
+void broadcast_condition(condition_t *condition);
+void signal_condition(condition_t *condition);
+void reset_condition(condition_t *condition);
+void free_condition(condition_t *condition);
 
 space_t *new_space(int size);
 void free_space(space_t *space);

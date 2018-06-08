@@ -11,19 +11,8 @@
 #include <string.h>
 #include <signal.h>
 
-
 // Sliding dictionary size for deflate.
 #define DICT 32768U
-// Largest power of 2 that fits in an unsigned int. Used to limit requests to
-// zlib functions that use unsigned int lengths.
-// #define MAXP2 (UINT_MAX - (UINT_MAX >> 1))
-
-//TODO MOVE THIS GLOBAL STRUCT TO THE MAIN FILE
-struct {
-    int cthreads;
-    int procs;
-    int block;
-} g;
 
 struct lock_t
 {
@@ -41,7 +30,6 @@ lock_t *new_lock(unsigned int users, int fixed_size)
   assert(sem_init(lock->semaphore, 0, users) == 0);
   return lock;
 }
-
 
 // Destroy the lock.
 // This is not safe deletion. Only use this
@@ -68,7 +56,68 @@ void increment_lock(lock_t* lock)
   assert(sem_post(lock->semaphore) == 0);
 }
 
-// -- pool of spaces for buffer management --
+struct condition_t
+{
+  pthread_mutex_t *mutex;
+  pthread_cond_t *cond;
+  int ready;
+};
+
+
+condition_t* new_condition()
+{
+  condition_t *condition = Malloc (sizeof (condition_t));
+  condition->mutex = Malloc (sizeof (pthread_mutex_t));
+  condition->cond = Malloc (sizeof (pthread_cond_t));
+  assert(pthread_mutex_init(condition->mutex, NULL) == 0);
+  assert(pthread_cond_init(condition->cond, NULL) == 0);
+  condition->ready = 0;
+  return condition;
+}
+
+void wait_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  while (condition->ready == 0)
+    pthread_cond_wait (condition->cond, condition->mutex);
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void broadcast_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  condition->ready = 1;
+  pthread_cond_broadcast(condition->cond);
+  pthread_mutex_unlock (condition->mutex);
+}
+
+
+void signal_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  condition-> ready = 1;
+  pthread_cond_signal (condition->cond);
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void reset_condition (condition_t *condition)
+{
+  pthread_mutex_lock (condition->mutex);
+  pthread_cond_destroy(condition->cond);
+  pthread_cond_init(condition->cond, NULL);
+  condition->ready = 0;
+  pthread_mutex_unlock (condition->mutex);
+}
+
+void free_condition (condition_t *condition)
+{
+  free(condition->mutex);
+  free(condition->cond);
+  free(condition);
+}
+
+
+//-- pool of spaces for buffer management --
 
 // These routines manage a pool of spaces. Each pool specifies a fixed size
 // buffer to be contained in each space. Each space has a use count, which when
@@ -120,7 +169,6 @@ struct pool_t
   space_t *head;    // linked list of available buffers
   size_t size;      // size of new buffers in this pool
   int limit;        // number of new spaces allowed
-  int made;         // number of buffers made
 };
 
 pool_t *new_pool(size_t size, int limit) {
@@ -131,7 +179,24 @@ pool_t *new_pool(size_t size, int limit) {
   pool->head = NULL;
   pool->size = size;
   pool->limit = limit;
-  pool->made = 0;
+
+  if (size <= 0)
+    return pool;
+
+  int i;
+  space_t *cur;
+  pool->head = new_space(pool->size);
+  i = 0;
+  cur = pool->head;
+  while(i < limit-1)
+    {
+      cur->pool = pool;
+      cur->next = new_space(pool->size);
+      cur = cur->next;
+      ++i;
+    }
+  cur->pool = pool;
+  cur->next = NULL;
   return pool;
 }
 
@@ -141,22 +206,9 @@ space_t *get_space(pool_t *pool)
   space_t *space;
   get_lock(pool->have);
   get_lock(pool->safe);
-
-  // if a space is available, pull it from the free list and return it
-  if (pool->head != NULL)
-    {
-      space = pool->head;
-      pool->head = space->next;
-      space->len = 0;
-      release_lock(pool->safe);
-      return space;
-    }
-
-  // create a new space
-  assert(pool->made != pool->limit);
-  pool->made++;
-  space = new_space(pool->size);
-  space->pool = pool;
+  space = pool->head;
+  pool->head = space->next;
+  space->len = 0;
   release_lock(pool->safe);
   return space;
 }
@@ -204,7 +256,7 @@ struct job_t
   space_t *in;                // input data to compress
   space_t *out;               // dictionary or resulting compressed data
   space_t *dict;
-  unsigned long check;        // check value for input data
+  u_int32_t check;        // check value for input data
   lock_t *calc;                 // released when check calculation complete
   job_t *next;           // next job in the list (either list)
 };
@@ -253,7 +305,7 @@ void free_job (job_t *job)
   drop_space(job->dict);
   drop_space(job->in);
   drop_space(job->out);
-  free(job->calc);
+  free_lock(job->calc);
   free(job);
 }
 
@@ -266,6 +318,7 @@ struct job_queue_t
   lock_t *use;
   sig_atomic_t num_threads;
   int closed;
+  condition_t *queue_update;
 };
 
 job_queue_t* new_job_queue (int num_threads)
@@ -278,6 +331,7 @@ job_queue_t* new_job_queue (int num_threads)
   job_q->active = new_lock (0, 0);
   job_q->num_threads = num_threads;
   job_q->closed = 0;
+  job_q->queue_update = new_condition();
   return job_q;
 }
 
@@ -285,11 +339,10 @@ void close_job_queue (job_queue_t *job_q)
 {
   get_lock(job_q->use);
   --job_q->num_threads;
-  fprintf(stderr,"Decremented job queue!");
   if (job_q->num_threads == 0)
     {
       job_q->closed = 1;
-      fprintf(stderr,"Closed job queue!");
+      broadcast_condition(job_q->queue_update);
       increment_lock(job_q->active);
     }
   release_lock(job_q->use);
@@ -327,8 +380,7 @@ job_t *get_job_bgn (job_queue_t *job_q)
 }
 
 //get a job from the queue that has the same sequece number as seq
-
-static job_t *search_job_queue(job_queue_t *job_q, long seq)
+__attribute__ ((pure)) static job_t  *search_job_queue (job_queue_t *job_q, long seq) 
 {
   if (job_q == NULL)
     return NULL;
@@ -339,10 +391,6 @@ static job_t *search_job_queue(job_queue_t *job_q, long seq)
 	break;
       search = search->next;
     }
-  if (search == NULL)
-    printf("Not found\n");
-  else
-    printf("Found\n");
   return search;
 }
 
@@ -352,10 +400,13 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
   job_t *result, *prev;
   do
     {
+      if (!keep_looking)
+        return NULL;
+      wait_condition(job_q->queue_update);
       keep_looking = !job_q->closed;
       result = search_job_queue(job_q, seq);
-      if (!keep_looking)
-	return NULL;
+      if (keep_looking)
+	reset_condition(job_q->queue_update);
     } while (result == NULL);
 
   get_lock(job_q->use);
@@ -383,54 +434,6 @@ job_t* get_job_seq (job_queue_t* job_q, int seq)
 }
 
 
-/*job_t* get_job_seq (job_queue_t* job_q, int seq)
-{
-    job_t* prev = NULL;
-    job_t* cur = job_q->head;
-    while(1)
-      {
-        if(cur == NULL)
-	  {
-            prev = NULL;
-            cur = job_q->head;
-	    continue;
-	  }
-	printf("Looking at seq %ld and looking for seq %d\n", cur->seq, seq);
-	printf( "%d", job_q->len);
-        if(cur->seq == seq)
-	  {
-            break;
-	  }
-        prev = cur;
-        cur = cur->next;
-      }
-
-    get_lock(job_q->active);
-    get_lock(job_q->use);
-    if(prev == NULL) {
-        job_q->head = job_q->head->next;
-        if (job_q->head == NULL) {
-            job_q->tail = NULL;
-        }
-        --job_q->len;
-        cur->next = NULL;
-        release_lock(job_q->use);
-        return cur;
-    } else {
-        prev->next = cur->next;
-        if (job_q->head == NULL) {
-            job_q->tail = NULL;
-        }
-        --job_q->len;
-        cur->next = NULL;
-        release_lock(job_q->use);
-        return cur;
-    }
-}
-*/
-
-
-
 //add a job to the beginning of the job queue
 void add_job_bgn (job_queue_t *job_q, job_t *job)
 {
@@ -440,6 +443,7 @@ void add_job_bgn (job_queue_t *job_q, job_t *job)
   job->next = job_q->head;
   job_q->head = job;
   ++job_q->len;
+  signal_condition(job_q->queue_update);
   increment_lock(job_q->active);
   release_lock(job_q->use);
 }
@@ -461,6 +465,7 @@ void add_job_end (job_queue_t *job_q, job_t *job)
   }
   job->next = NULL;
   ++job_q->len;
+  signal_condition(job_q->queue_update);
   increment_lock(job_q->active);
   release_lock(job_q->use);
 }
@@ -551,11 +556,11 @@ void *compress_thread(void *(opts)) {
 
 
     //calculate check value
-    uLong crc = crc32_z(0L, Z_NULL, 0);
-    crc = crc32_z(crc, (Byte *) job->in->buf, job->in->len);
+    u_int32_t crc = crc32_z(0L, Z_NULL, 0);
+    crc = crc32_z(crc, job->in->buf, job->in->len);
     job->check = crc;
     // insert write job in list in sorted order, alert write thread
-    fprintf(stderr,"Adding job with seq %ld", job->seq);
+    //fprintf(stderr,"Adding job with seq %ld", job->seq);
     add_job_bgn(write_q, job);
   }
 
@@ -687,7 +692,7 @@ void* write_thread(void *opts) {
     int more = 1;
     length_t ulen;
     length_t clen;
-    unsigned long check;
+    u_int32_t final_check = crc32_z(0L, Z_NULL, 0);
 
     w_opts = (struct write_opts*) opts;
     jobqueue = w_opts->jobqueue;
@@ -696,17 +701,14 @@ void* write_thread(void *opts) {
     mtime = w_opts->mtime;
     level = w_opts->level;
 
-    put_header(outfd, name, mtime, level);
 
+    put_header(outfd, name, mtime, level);
     ulen = clen = 0;
-    check = crc32_z(0L, Z_NULL, 0);
     seq = 0;
 
     while (more)
       {
         job = get_job_seq(jobqueue, seq);
-	if (job!=NULL)
-	  printf("Got job with sequence number %ld", job->seq);
 	if (job == NULL)
 	  break;
         input_len = job->in->len;
@@ -714,10 +716,10 @@ void* write_thread(void *opts) {
         clen += job->out->len;
 	more = job->more;
         writen(outfd, job->out->buf, job->out->len);
-        check = crc32_combine(check, job->check, job->in->len);
+        final_check = crc32_combine(final_check, job->check, job->in->len);
         free_job(job);
         seq++;
       }
-    put_trailer(outfd, ulen, check);
+    put_trailer(outfd, ulen, final_check);
     return NULL;
 }

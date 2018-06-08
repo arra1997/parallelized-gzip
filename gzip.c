@@ -86,6 +86,7 @@ static char const *const license_msg[] = {
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/sysinfo.h>
 
 #define INBUFS(p) (((p)<<1)+3)
 
@@ -175,6 +176,7 @@ static int ascii = 0;        /* convert end-of-lines to local OS conventions */
 static int decompress = 0;   /* decompress (-d) */
 static int force = 0;        /* don't ask questions, compress links (-f) */
 static int keep = 0;         /* keep (don't delete) input files */
+       int independent = 0;
 static int no_name = -1;     /* don't save or restore the original file name */
 static int no_time = -1;     /* don't save or restore the original file time */
 static int recursive = 0;    /* recurse through directories (-r) */
@@ -196,7 +198,8 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
-       int threads;
+       int processes; 
+       int temp_fd;
 
 /* The original timestamp (modification time).  If the original is
    unknown, TIME_STAMP.tv_nsec is negative.  If the original is
@@ -270,7 +273,7 @@ enum
   ENV_OPTION
 };
 
-static char const shortopts[] = "ab:cdfhH?klLmMnNpqrS:tvVZ123456789";
+static char const shortopts[] = "ab:cdfhHi?klLmMnNp:qrS:tvVZ123456789";
 
 static const struct option longopts[] =
 {
@@ -283,6 +286,7 @@ static const struct option longopts[] =
  /* {"encrypt",    0, 0, 'e'},    encrypt */
     {"force",      0, 0, 'f'}, /* force overwrite of output file */
     {"help",       0, 0, 'h'}, /* give help */
+    {"independent", 0, 0, 'i'},
  /* {"pkzip",      0, 0, 'k'},    force output in pkzip format */
     {"keep",       0, 0, 'k'}, /* keep (don't delete) input files */
     {"list",       0, 0, 'l'}, /* list .gz file contents */
@@ -364,6 +368,7 @@ local void help()
 /*  -e, --encrypt     encrypt */
  "  -f, --force       force overwrite of output file and compress links",
  "  -h, --help        give this help",
+ "  -i, --independent compress blocks independently for damage recovery" ,
 /*  -k, --pkzip       force output in pkzip format */
  "  -k, --keep        keep (don't delete) input files",
  "  -l, --list        list compressed file contents",
@@ -386,7 +391,7 @@ local void help()
  "  -V, --version     display version number",
  "  -1, --fast        compress faster",
  "  -9, --best        compress better",
- "  -p, --processes n    Allow up to n compression threads",
+ "  -p, --processes=n allow up to n compression threads",
 #ifdef LZW
  "  -Z, --lzw         produce output compatible with old compress",
  "  -b, --bits=BITS   max number of bits per code (implies -Z)",
@@ -437,6 +442,7 @@ int main (int argc, char **argv)
     int env_argc;
     char **env_argv;
 
+    processes = get_nprocs();
     EXPAND(argc, argv); /* wild card expansion if necessary */
 
     program_name = gzip_base_name (argv[0]);
@@ -541,6 +547,8 @@ int main (int argc, char **argv)
             force++; break;
         case 'h': case 'H':
             help (); finish_out (); break;
+	case 'i':
+    	    independent = 1; break;
         case 'k':
             keep = 1; break;
         case 'l':
@@ -560,10 +568,10 @@ int main (int argc, char **argv)
         case PRESUME_INPUT_TTY_OPTION:
             presume_input_tty = true; break;
         case 'p':
-            threads = (int)*optarg;                   // # processes
-            if (threads < 1)
+            processes = atoi(optarg);                  
+            if (processes < 1)
                 exit(EXIT_FAILURE);
-            if (INBUFS(threads) < 1)
+            if (INBUFS(processes) < 1)
                 exit(EXIT_FAILURE);
             break;
         case 'q':
@@ -788,22 +796,25 @@ local void treat_stdin()
     part_nb = 0;
     ifd = STDIN_FILENO;
     stdin_was_read = true;
-
-    // if (decompress) {
-    //     method = get_method(ifd);
-    //     if (method < 0) {
-    //         do_exit(exit_code);  //error message already emitted 
-    //     }
-    // }
+    if (decompress) {
+        temp_fd = open("tempfd", O_RDWR | O_CREAT);
+        method = get_method(ifd);
+        if (method < 0) {
+            do_exit(exit_code);  //error message already emitted 
+        }
+    }
     if (list) {
         do_list(ifd, method);
         return;
     }
     /* Actually do the compression/decompression. Loop over zipped members.
      */
-    method = 8;
-    if (decompress)
-      work = unzip;
+
+    while (input_eof() == 0)
+    {
+      if (fill_inbuf(1) == EOF)
+        inptr = insize;
+    }
     for (;;) {
         if (work (STDIN_FILENO, STDOUT_FILENO) != OK)
           return;
@@ -811,11 +822,12 @@ local void treat_stdin()
         if (input_eof ())
           break;
 
-        // method = get_method(ifd);
-        // if (method < 0) return; /* error message already emitted */
+        method = get_method(ifd);
+        if (method < 0) return; /* error message already emitted */
         bytes_out = 0;            /* required for length check */
     }
-
+    if (decompress)
+      unlink("tempfd");
     if (verbose) {
         if (test) {
             fprintf(stderr, " OK\n");

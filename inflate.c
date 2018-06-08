@@ -73,8 +73,6 @@ int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_b
       assert (read_count != -1);
       if (read_count == 0)
         break;
-      // printf("%.*s",read_count,in);
-      // printf("bytes %d\n", read_count);
       *read_bytes += read_count;
       strm.next_in = in;
       strm.avail_in = read_count;
@@ -83,11 +81,9 @@ int inflate_file (int input_fd, int output_fd, off_t *read_bytes, off_t *write_b
         {
           strm.next_out = out;
           strm.avail_out = BUFFER_SIZE_INFLATE;
-          // fprintf(stderr, "Before inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
           ret = inflate (&strm, flush);
           assert (ret != Z_STREAM_ERROR);
           write_count = write (output_fd, out, BUFFER_SIZE_INFLATE - strm.avail_out);
-          // fprintf(stderr, "After inflation:: avail_in: %u bytes, avail_out: %u bytes\n", strm.avail_in, strm.avail_out);
           assert (write_count != -1);
           *write_bytes += write_count;
           if (ret == Z_STREAM_END && strm.avail_in != 0)
