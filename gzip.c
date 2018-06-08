@@ -86,6 +86,7 @@ static char const *const license_msg[] = {
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/sysinfo.h>
 
 #define INBUFS(p) (((p)<<1)+3)
 
@@ -197,7 +198,7 @@ static int part_nb;          /* number of parts in .gz file */
 static char *env;            /* contents of GZIP env variable */
 static char const *z_suffix; /* default suffix (can be set with --suffix) */
 static size_t z_len;         /* strlen(z_suffix) */
-       int processes = 1;
+       int processes = get_nprocs();
        int temp_fd;
 
 /* The original timestamp (modification time).  If the original is
@@ -272,7 +273,7 @@ enum
   ENV_OPTION
 };
 
-static char const shortopts[] = "ab:cdfhHi?klLmMnNpqrS:tvVZ123456789";
+static char const shortopts[] = "ab:cdfhHi?klLmMnNp:qrS:tvVZ123456789";
 
 static const struct option longopts[] =
 {
