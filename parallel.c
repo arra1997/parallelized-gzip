@@ -352,6 +352,7 @@ void free_job_queue (job_queue_t *job_q)// not thread safe
 {
   free_lock(job_q->active);
   free_lock(job_q->use);
+  free_condition(job_q->queue_update);
   free(job_q);
 }
 
