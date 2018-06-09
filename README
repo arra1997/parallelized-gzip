@@ -6,12 +6,21 @@ and other dependencies installed and run the following commands.
 2. ./configure
 3. make
 
-Out of the original 21 test cases in the Makefile, we currently pass 17.
-The --rsyncable and --test options do not currently work as intended.
-
 The latest additions to this project, which remains a work-in-progress
 are the --processes/-p option and the --independent/-i option. Try
-'gzip --help' for more information on how to use them.
+'gzip --help' for more information on how to use them. 
+
+Known bugs/Features to complete:
+1. Out of the original 21 test cases in the Makefile, we currently pass 17.
+2. The --rsyncable and --test options do not currently work as intended
+3. We wish to implement a parallelized version of --rsyncable using an
+algorithm similar to Mark Adler's pigz.
+4. Ideally, we wish to rewrite gzip to improve code quality and readibility -
+we want to make it modular, since it currently is not
+5. The data structures and functions in parallel.h & parallel.c need to be
+tested more thoroughly, and for any new functionality we want to add tests
+to the Makefile.
+--------------------------------------------------------------------
 
 gzip (GNU zip) is a compression utility designed to be a replacement
 for 'compress'. Its main advantages over compress are much better
