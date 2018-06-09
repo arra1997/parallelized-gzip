@@ -44,7 +44,7 @@ EXTRA_DIST = $(ACINCLUDE_INPUTS) $(man_MANS) \
   sample/ztouch sample/add.c sample/sub.c sample/zread.c sample/zfile \
   tailor.h \
   zcat.in zcmp.in zdiff.in \
-  zegrep.in zfgrep.in zforce.in zgrep.in zless.in zmore.in znew.in
+  zegrep.in zfgrep.in zforce.in zgrep.in zless.in zmore.in znew.in inflate.h parallel.c parallel.h deflate.h utils.c utils.h
 noinst_HEADERS = gzip.h lzw.h
 
 bin_PROGRAMS = gzip

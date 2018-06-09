@@ -41,10 +41,11 @@ void free_pool(pool_t* pool);
 job_t *new_job (long seq, pool_t *in_pool, pool_t *out_pool);
 void set_last_job (job_t *job);
 int load_job (job_t *job, int input_fd);
+void finished_processing (job_t *job);
 void free_job (job_t *job);
 void set_dictionary (job_t *prev_job, job_t *next_job, pool_t *dict_pool);
 
-job_queue_t* new_job_queue (int num_threads);
+job_queue_t* new_job_queue (int num_threads, int ordered);
 void close_job_queue (job_queue_t *job_q);
 void free_job_queue (job_queue_t *job_q); // not thread safe
 job_t *get_job_bgn (job_queue_t *job_q);

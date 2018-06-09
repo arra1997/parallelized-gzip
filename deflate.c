@@ -79,12 +79,12 @@ int deflate_file_parallel (int input_fd, int output_fd, long block_size,
   write_opts *w_opts;
   pthread_t *pthread_array;
 
-  job_queue = new_job_queue (1);
-  write_job_queue = new_job_queue (processes);
-  input_pool = new_pool (block_size, processes+1);
-  output_pool = new_pool (block_size, processes+1);
+  job_queue = new_job_queue (1, 0);
+  write_job_queue = new_job_queue (processes, 1);
+  input_pool = new_pool (block_size, 2*processes);
+  output_pool = new_pool (block_size, 2*processes);
   if (!independent)
-      dict_pool = new_pool (DICT, processes+1);
+      dict_pool = new_pool (DICT, 2*processes);
   else
       dict_pool = NULL;
   seq = 0;
