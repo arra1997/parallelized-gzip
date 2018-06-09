@@ -1,16 +1,27 @@
-This is the file README for the gzip distribution.
+This is the file README for the parallelized gzip prototype.
 
-The GNU gzip home page is https://www.gnu.org/software/gzip.
+To get parallelized gzip working, make sure you have the zlib library
+and other dependencies installed and run the following commands.
+1. autoreconf -f -i
+2. ./configure
+3. make
+
+Out of the original 21 test cases in the Makefile, we currently pass 17.
+The --rsyncable and --test options do not currently work as intended.
+
+The latest additions to this project, which remains a work-in-progress
+are the --processes/-p option and the --independent/-i option. Try
+'gzip --help' for more information on how to use them.
 
 gzip (GNU zip) is a compression utility designed to be a replacement
 for 'compress'. Its main advantages over compress are much better
 compression and freedom from patented algorithms.  The GNU Project
 uses it as the standard compression program for its system.
 
-gzip currently uses by default the LZ77 algorithm used in zip 1.9 (the
-portable pkzip compatible archiver). The gzip format was however
-designed to accommodate several compression algorithms. See below
-for a comparison of zip and gzip.
+This gzip currently uses by default the LZ77 algorithm and exercises zlib
+for to do so, and uses all the cores available on the system.
+The gzip format was however designed to accommodate several compression
+algorithms. See below for a comparison of zip and gzip.
 
 gunzip can currently decompress files created by gzip, compress or
 pack. The detection of the input format is automatic.  For the
