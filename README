@@ -8,7 +8,7 @@ and other dependencies installed and run the following commands.
 
 The latest additions to this project, which remains a work-in-progress
 are the --processes/-p option and the --independent/-i option. Try
-'gzip --help' for more information on how to use them. 
+'gzip --help' for more information on how to use them.
 
 Known bugs/Features to complete:
 1. Out of the original 21 test cases in the Makefile, we currently pass 17.
@@ -20,6 +20,17 @@ we want to make it modular, since it currently is not
 5. The data structures and functions in parallel.h & parallel.c need to be
 tested more thoroughly, and for any new functionality we want to add tests
 to the Makefile.
+
+
+New tests that are not part of make check, must be run individually:
+The new tests are in the tests folder, and is run using the command ./newTests.sh
+
+1) Parallel Compression with 4 Threads decompressed file integrity test -- Pass
+2) Parallel Compression with 8 Threads decompressed file integrity test -- Pass
+3) Appended decompressed files same as appended original files -- Fail
+4) Decompressed file of 2 Thread compression and 4 Thread are the same -- Pass
+5) Decompressed file of 4 Thread compression and 8 Thread are the same -- Pass
+
 --------------------------------------------------------------------
 
 gzip (GNU zip) is a compression utility designed to be a replacement

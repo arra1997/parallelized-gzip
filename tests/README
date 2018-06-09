@@ -22,3 +22,13 @@ Name of test file and description of its test case.
 19) zgrep-content - Ensure that zgrep -15 works.
 20) zgrep-signal - Check that zgrep is terminated gracefully by signal when its grep/sed pipeline is terminated by a signal.
 21) znew-k - Check that znew -K works without compress(1)
+
+
+New tests that are not part of make check, must be run individually:
+The new tests are in the tests folder, and is run using the command ./newTests.sh
+
+1) Parallel Compression with 4 Threads decompressed file integrity test -- Pass
+2) Parallel Compression with 8 Threads decompressed file integrity test -- Pass
+3) Appended decompressed files same as appended original files -- Fail
+4) Decompressed file of 2 Thread compression and 4 Thread are the same -- Pass
+5) Decompressed file of 4 Thread compression and 8 Thread are the same -- Pass
